@@ -1,4 +1,7 @@
-#from srwlib import *
+# Path to SRW python lib and import as srw
+import sys
+sys.path.append('/home/dhidas/SRW/env/work/srw_python')
+from srwlib import *
 
 
 
@@ -20,10 +23,6 @@ def ReadHallProbeData (InFileName, ZMin = -999, ZMax = 999):
       Bx.append(bx)
       By.append(by)
       Bz.append(bz)
-      npZ += 1
-
-
-
     
 
   return [Z, Bx, By, Bz]
@@ -33,15 +32,18 @@ def ReadHallProbeData (InFileName, ZMin = -999, ZMax = 999):
 
 
 
-def ReadHallProbeDataSRW (InFileName, ZMin = -999, ZMax = 999):
-  "Read a data file from the teststand and return SRW MagFld3D object"
+def ReadHallProbeDataSRW (InFileName, ZMin = -0.850, ZMax = 0.850):
+  "Read a data file from the teststand and return list of parameters needed for simulation"
 
   f = open(InFileName, 'r')
 
-  Z  = array('d')
-  Bx = array('d')
-  By = array('d')
-  Bz = array('d')
+  Z  = []
+  Bx = []
+  By = []
+  Bz = []
+
+  npXY = 1
+  npZ  = 0
 
   for l in f:
     [z, bx, by, bz] = map(float, l.split())
@@ -54,15 +56,21 @@ def ReadHallProbeDataSRW (InFileName, ZMin = -999, ZMax = 999):
       npZ += 1
 
 
-  npXY = 1
-  npZ  = len(Z)
-
   ZStep = (ZMax - ZMin) / npZ
 
+  locArZ  = array('d', [0]*npZ)
+  locArBx = array('d', [0]*npZ)
+  locArBy = array('d', [0]*npZ)
+  locArBz = array('d', [0]*npZ)
+
+  for i in range(npZ):
+    locArZ[i]  =  Z[i]
+    locArBx[i] = Bx[i]
+    locArBy[i] = By[i]
+    locArBz[i] = Bz[i]
     
 
-  return SRWLMagFld3D(Bx, By, Bz, npXY, npXY, npZ, 0.0, 0.0, (npZ)*ZStep, 1, 1, None, None, _arZ=Z)
-
+  return SRWLMagFld3D(locArBx, locArBy, locArBz, npXY, npXY, npZ, 0.0, 0.0, (npZ)*ZStep, 1, 1, None, None, _arZ=locArZ)
 
 
 
