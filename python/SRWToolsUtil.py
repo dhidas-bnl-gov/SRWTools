@@ -1,6 +1,7 @@
 # Path to SRW python lib and import as srw
 import sys
-sys.path.append('/home/dhidas/SRW/env/work/srw_python')
+#sys.path.append('/home/dhidas/SRW/env/work/srw_python')
+sys.path.append('/Users/dhidas/SRW/env/work/srw_python')
 from srwlib import *
 
 
