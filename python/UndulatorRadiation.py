@@ -9,10 +9,10 @@ import matplotlib.pyplot as plt
 
 
 # grab the input date file from the command line
-InFileName = ""
-if len(sys.argv) == 1:
+InFileName = ''
+if len(sys.argv) == 2:
   InFileName = sys.argv[1]
-elif len(sys.argv) > 1:
+elif len(sys.argv) > 2:
   print 'Usage: ', sys.argv[0], '[InFileName]'
   print 'If InFileName not specified, will run for simulated undulator'
   exit(0)
@@ -25,7 +25,7 @@ magFldCnt.allocate(1)
 
 
 
-if False:
+if InFileName == '':
   # define the undulator specs
   numPer = 70
   undPer = 0.021
