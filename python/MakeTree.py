@@ -44,33 +44,50 @@ for l in fi:
 
 
 # Loop over data and find min/max for every point
-LastBy = 0
-UpStart = False
-DownStart = False
+IsAbove = False
+IsBelow = False
 MaxBy = 0
 MinBy = 0
-MaxByPos = 0
-MinByPos = 0
+ZMax  = 0
+ZMin  = 0
+MaxListZ  = []
+MaxListBy = []
+BThreshold = 0.0004
 for i in range( len(Z) ):
-  if LastBy < 0.002 and By[i] > 0.02:
-    UpStart = True
-    DownStart = False
-    MaxBy = 0
-    MaxByPos = 0
-  if LastBy > 0.002 and By[i] < 0.02:
-    UpStart = False
-    DownStart = True
-    MinBy = 0
-    MinByPos = 0
-    print MaxByPos, MaxBy
-    MaxBy = 0
+  if By[i] < -BThreshold:
+    if IsAbove:
+      MaxListZ.append(ZMax)
+      MaxListBy.append(MaxBy)
+      MaxBy = 0
+    IsBelow = True
+    IsAbove = False
+  if By[i] > BThreshold:
+    if IsBelow:
+      MaxListZ.append(ZMin)
+      MaxListBy.append(MinBy)
+      MinBy = 0
+    IsBelow = False
+    IsAbove = True
 
-  if UpStart and By[i] > MaxBy:
+  if IsAbove and By[i] > MaxBy:
     MaxBy = By[i]
-    MaxByPos = Z[i]
+    ZMax  = Z[i]
+  if IsBelow and By[i] < MinBy:
+    MinBy = By[i]
+    ZMin  = Z[i]
+if IsAbove:
+  MaxListZ.append(ZMax)
+  MaxListBy.append(MaxBy)
+if IsBelow:
+  MaxListZ.append(ZMin)
+  MaxListBy.append(MinBy)
 
 
 
+print 'Number of max/min seen: ', len(MaxListZ)
+if len(MaxListZ) != 0:
+  gMaxBy = TGraph( len(MaxListZ), array('d', MaxListZ), array('d', MaxListBy))
+  gMaxBy.Write()
 
 
 
@@ -96,6 +113,11 @@ gBz.SetName("Bz")
 gBx.Write()
 gBy.Write()
 gBz.Write()
+
+
+fo.Write()
+fo.Close()
+exit(0)
 
 
 
