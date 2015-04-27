@@ -4,7 +4,7 @@ import sys
 from SRWToolsUtil import *
 import matplotlib.pyplot as plt
 
-from scipy.interpolate import interp1d
+from scipy import interpolate
 
 
 # grab data from file
