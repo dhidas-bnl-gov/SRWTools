@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from ROOT import TFile, TTree, TGraph, TCanvas
+from ROOT import TFile, TTree, TGraph, TCanvas, TF1
 import numpy
 from array import array
 import sys
@@ -50,20 +50,23 @@ MaxBy = 0
 MinBy = 0
 ZMax  = 0
 ZMin  = 0
-MaxListZ  = []
-MaxListBy = []
+ZMaxI = 0
+ZMinI = 0
+MaxListInd  = []
+MaxListBy   = []
+
 BThreshold = 0.0004
 for i in range( len(Z) ):
   if By[i] < -BThreshold:
     if IsAbove:
-      MaxListZ.append(ZMax)
+      MaxListInd.append(ZMaxI)
       MaxListBy.append(MaxBy)
       MaxBy = 0
     IsBelow = True
     IsAbove = False
   if By[i] > BThreshold:
     if IsBelow:
-      MaxListZ.append(ZMin)
+      MaxListInd.append(ZMinI)
       MaxListBy.append(MinBy)
       MinBy = 0
     IsBelow = False
@@ -72,23 +75,58 @@ for i in range( len(Z) ):
   if IsAbove and By[i] > MaxBy:
     MaxBy = By[i]
     ZMax  = Z[i]
+    ZMaxI = i
   if IsBelow and By[i] < MinBy:
     MinBy = By[i]
     ZMin  = Z[i]
+    ZMinI = i
 if IsAbove:
-  MaxListZ.append(ZMax)
+  MaxListInd.append(ZMaxI)
   MaxListBy.append(MaxBy)
 if IsBelow:
-  MaxListZ.append(ZMin)
+  MaxListInd.append(ZMinI)
   MaxListBy.append(MinBy)
 
 
 
-print 'Number of max/min seen: ', len(MaxListZ)
-if len(MaxListZ) != 0:
-  gMaxBy = TGraph( len(MaxListZ), array('d', MaxListZ), array('d', MaxListBy))
-  gMaxBy.Write()
+print 'Number of max/min seen I: ', len(MaxListInd)
 
+
+# Where is the calculated max By
+MaxBy  = []
+MaxByZ = []
+
+# Calculate the max based on pol2 fit maximum.  Assumption is to use max +-NFitWidth
+NFitWidth = 1
+for i in MaxListInd:
+  x = []
+  y = []
+
+  for j in range(-NFitWidth, NFitWidth + 1):
+    x.append(Z[i+j])
+    if By[i] >= 0:
+      y.append(By[i+j])
+    else:
+      y.append(-By[i+j])
+
+  g = TGraph(NFitWidth*2 + 1, array('d', x), array('d', y))
+  g.SetName('gFit' + str(i))
+  FitFunction = TF1("FitFunction_"+str(i), "pol2", -4, 4)
+  g.Fit(FitFunction, 'q')
+  g.Write()
+  MaxByZ.append(FitFunction.GetMaximumX())
+  if By[i] >= 0:
+    MaxBy.append(FitFunction.GetMaximum())
+  else:
+    MaxBy.append(-FitFunction.GetMaximum())
+
+
+gMaxBy = TGraph(len(MaxByZ), array('d', MaxByZ), array('d', MaxBy))
+gMaxBy.SetName('MaxBy')
+gMaxBy.SetTitle('Calculated Max By')
+gMaxBy.GetXaxis().SetTitle('Position [m]')
+gMaxBy.GetYaxis().SetTitle('B_{Y} [T]')
+gMaxBy.Write()
 
 
 gBx = TGraph( len(Z), Z, Bx )
@@ -115,9 +153,6 @@ gBy.Write()
 gBz.Write()
 
 
-fo.Write()
-fo.Close()
-exit(0)
 
 
 
@@ -223,6 +258,9 @@ zcID = 0
 und = SRWLMagFldU([SRWLMagFldH(1, 'v', By, phBy, sBy, 1), SRWLMagFldH(1, 'h', Bx, phBx, sBx, 1)], undPer, numPer)
 magFldCnt = SRWLMagFldC([und], array('d', [xcID]), array('d', [ycID]), array('d', [zcID])) #Container of all Field Elements
 
+fo.Write()
+fo.Close()
+exit(0)
 
 [SpectrumIdealX, SpectrumIdealY] = GetUndulatorSpectrum(magFldCnt)
 
