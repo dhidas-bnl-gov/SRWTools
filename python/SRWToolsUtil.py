@@ -76,3 +76,20 @@ def ReadHallProbeDataSRW (InFileName, ZMin = -0.850, ZMax = 0.850):
 
 
 
+
+
+def IntegralVector (X, Y):
+  "Integrate using simple trapazoid rule.  return vector: integral up to each point"
+
+  if len(X) != len(Y):
+    print 'ERROR: IntegralVector (X, Y) lengths not the same'
+     
+     
+
+  I = [0.0]
+  for i in range(1, len(X)):
+    dx = X[i] - X[i-1]
+    trap = dx * (Y[i-1] + 0.5 * (Y[i] - Y[i-1]))
+    I.append(I[-1:][0] + trap)
+
+  return I
