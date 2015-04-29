@@ -18,7 +18,7 @@ lib/%.o : exe/%.cc
 
 
 bin/% : $(OBJS) lib/%.o
-	$(LD) $(LIBS) $(OBJS) $(LINKDEFOBJ) lib/$*.o -o bin/$*
+	$(LD) $(LIBS) $(OBJS) lib/$*.o -o bin/$*
 
 
 
