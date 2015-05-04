@@ -1,7 +1,7 @@
 # Path to SRW python lib and import as srw
 import sys
-#sys.path.append('/home/dhidas/SRW/env/work/srw_python')
-sys.path.append('/Users/dhidas/SRW/env/work/srw_python')
+sys.path.append('/home/dhidas/SRW/env/work/srw_python')
+#sys.path.append('/Users/dhidas/SRW/env/work/srw_python')
 from srwlib import *
 
 
@@ -93,3 +93,54 @@ def IntegralVector (X, Y):
     I.append(I[-1:][0] + trap)
 
   return I
+
+
+
+
+
+
+
+def GetUndulatorSpectrum (magFldCnt,):
+  "Get the spectrum given und"
+
+  # Electron Beam
+  elecBeam = srwl_uti_src_e_beam('NSLS-II Low Beta Final')
+  elecBeam.partStatMom1.x = 0.
+  elecBeam.partStatMom1.y = 0.
+  elecBeam.partStatMom1.z = -1.8 #-0.5*undPer*(numPer + 4) #Initial Longitudinal Coordinate (set before the ID)
+  elecBeam.partStatMom1.xp = 0
+  elecBeam.partStatMom1.yp = 0
+
+  # For spectrum vs photon energy
+  wfr1 = SRWLWfr()
+  wfr1.allocate(10000, 1, 1)
+  wfr1.mesh.zStart = 20.
+  wfr1.mesh.eStart = 10.
+  wfr1.mesh.eFin = 30000.
+  wfr1.mesh.xStart = 0.
+  wfr1.mesh.xFin = 0
+  wfr1.mesh.yStart = 0
+  wfr1.mesh.yFin = 0
+  wfr1.partBeam = elecBeam
+
+
+
+  # Precision
+  meth = 1
+  relPrec = 0.01
+  zStartInteg = 0
+  zEndInteg = 0
+  npTraj = 20000
+  useTermin = 1
+  sampFactNxNyForProp = 0
+  arPrecPar = [meth, relPrec, zStartInteg, zEndInteg, npTraj, useTermin, sampFactNxNyForProp]
+
+  # Calculation (SRWLIB function calls)
+  srwl.CalcElecFieldSR(wfr1, 0, magFldCnt, arPrecPar)
+  arI1 = array('f', [0]*wfr1.mesh.ne)
+  srwl.CalcIntFromElecField(arI1, wfr1, 6, 0, 0, wfr1.mesh.eStart, wfr1.mesh.xStart, wfr1.mesh.yStart)
+
+  # Get X-values for plotting
+  XValues = [(wfr1.mesh.eStart + float(x) * (wfr1.mesh.eFin - wfr1.mesh.eStart) / wfr1.mesh.ne) for x in range(wfr1.mesh.ne)]
+
+  return [XValues, arI1]

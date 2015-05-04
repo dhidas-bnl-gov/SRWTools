@@ -258,9 +258,6 @@ zcID = 0
 und = SRWLMagFldU([SRWLMagFldH(1, 'v', By, phBy, sBy, 1), SRWLMagFldH(1, 'h', Bx, phBx, sBx, 1)], undPer, numPer)
 magFldCnt = SRWLMagFldC([und], array('d', [xcID]), array('d', [ycID]), array('d', [zcID])) #Container of all Field Elements
 
-fo.Write()
-fo.Close()
-exit(0)
 
 [SpectrumIdealX, SpectrumIdealY] = GetUndulatorSpectrum(magFldCnt)
 

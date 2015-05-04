@@ -24,14 +24,9 @@ plt.plot(Z, IntegralBy)
 print IntegralBx[-1:][0] * 1e4, IntegralBy[-1:][0] * 1e4, '  Gm'
 
 
-Bx2 = []
-By2 = []
-for i in range( len(Z) ):
-  Bx2.append( IntegralBx[i] )
-  By2.append( IntegralBy[i] )
 
-Bx2Integral = IntegralVector(Z, Bx2)
-By2Integral = IntegralVector(Z, By2)
+Integral2Bx = IntegralVector(Z, IntegralBx)
+Integral2By = IntegralVector(Z, IntegralBy)
 
 print Bx2Integral[-1:][0] * 1e4, By2Integral[-1:][0] * 1e4, '  Gm^2'
 
@@ -42,15 +37,4 @@ plt.plot(Z, By2Integral)
 plt.show()
 
 
-#tck = interpolate.splrep(Z, By, s=0)
-#xnew = numpy.arange(Z[0], Z[-1:][0], (Z[-1:][0] - Z[0]) / 100000.)
-#ynew = interpolate.splev(xnew, tck, der=0)
 
-#plt.plot(xnew, ynew)
-#plt.show()
-
-
-
-#Integralynew = IntegralVector(xnew, ynew)
-
-#print Integralynew[-1:][0]
