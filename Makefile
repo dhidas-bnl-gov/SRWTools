@@ -4,8 +4,8 @@ CFLAGS = -Wall -O3
 LIBS =
 INCLUDE = -Iinclude
 OBJS  = $(patsubst src/%.cc,lib/%.o,$(wildcard src/*.cc))
-EXECS = $(patsubst bin/%.cc,%,$(wildcard bin/*.cc))
-EXEOBJS  = $(patsubst bin/%.cc,lib/%.o,$(wildcard bin/*.cc))
+EXECS = $(patsubst exe/%.cc,bin/%,$(wildcard exe/*.cc))
+EXEOBJS  = $(patsubst exe/%.cc,lib/%.o,$(wildcard exe/*.cc))
 
 
 all: $(OBJS) $(EXEOBJS) $(EXECS)
@@ -13,12 +13,12 @@ all: $(OBJS) $(EXEOBJS) $(EXECS)
 lib/%.o : src/%.cc
 	$(CC) -Wall $(CFLAGS) $(INCLUDE) -c $< -o $@
 
-lib/%.o : bin/%.cc
+lib/%.o : exe/%.cc
 	$(CC) -Wall $(CFLAGS) $(INCLUDE) -c $< -o $@
 
 
-% : $(OBJS) lib/%.o
-	$(LD) $(LIBS) $(OBJS) $(LINKDEFOBJ) lib/$@.o -o $@
+bin/% : $(OBJS) lib/%.o
+	$(LD) $(LIBS) $(OBJS) lib/$*.o -o bin/$*
 
 
 

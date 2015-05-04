@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from ROOT import TFile, TTree, TGraph, TCanvas, TF1
 import numpy
 from array import array
 import sys
@@ -42,92 +41,17 @@ for l in fi:
   Bz.append(tBz[0])
 
 
+# Get the max and mins in the field
+[MaxListInd, MaxListBy] = FindMaxAndMins(Z, By)
+[MaxByZ, MaxBy] = FindMinMaxFromFit(MaxListInd, Z, By)
 
-# Loop over data and find min/max for every point
-IsAbove = False
-IsBelow = False
-MaxBy = 0
-MinBy = 0
-ZMax  = 0
-ZMin  = 0
-ZMaxI = 0
-ZMinI = 0
-MaxListInd  = []
-MaxListBy   = []
-
-BThreshold = 0.0004
-for i in range( len(Z) ):
-  if By[i] < -BThreshold:
-    if IsAbove:
-      MaxListInd.append(ZMaxI)
-      MaxListBy.append(MaxBy)
-      MaxBy = 0
-    IsBelow = True
-    IsAbove = False
-  if By[i] > BThreshold:
-    if IsBelow:
-      MaxListInd.append(ZMinI)
-      MaxListBy.append(MinBy)
-      MinBy = 0
-    IsBelow = False
-    IsAbove = True
-
-  if IsAbove and By[i] > MaxBy:
-    MaxBy = By[i]
-    ZMax  = Z[i]
-    ZMaxI = i
-  if IsBelow and By[i] < MinBy:
-    MinBy = By[i]
-    ZMin  = Z[i]
-    ZMinI = i
-if IsAbove:
-  MaxListInd.append(ZMaxI)
-  MaxListBy.append(MaxBy)
-if IsBelow:
-  MaxListInd.append(ZMinI)
-  MaxListBy.append(MinBy)
-
-
-
-print 'Number of max/min seen I: ', len(MaxListInd)
-
-
-# Where is the calculated max By
-MaxBy  = []
-MaxByZ = []
-
-# Calculate the max based on pol2 fit maximum.  Assumption is to use max +-NFitWidth
-NFitWidth = 1
-for i in MaxListInd:
-  x = []
-  y = []
-
-  for j in range(-NFitWidth, NFitWidth + 1):
-    x.append(Z[i+j])
-    if By[i] >= 0:
-      y.append(By[i+j])
-    else:
-      y.append(-By[i+j])
-
-  g = TGraph(NFitWidth*2 + 1, array('d', x), array('d', y))
-  g.SetName('gFit' + str(i))
-  FitFunction = TF1("FitFunction_"+str(i), "pol2", -4, 4)
-  g.Fit(FitFunction, 'q')
-  g.Write()
-  MaxByZ.append(FitFunction.GetMaximumX())
-  if By[i] >= 0:
-    MaxBy.append(FitFunction.GetMaximum())
-  else:
-    MaxBy.append(-FitFunction.GetMaximum())
-
-
+# Save a graph of the points found
 gMaxBy = TGraph(len(MaxByZ), array('d', MaxByZ), array('d', MaxBy))
 gMaxBy.SetName('MaxBy')
 gMaxBy.SetTitle('Calculated Max By')
 gMaxBy.GetXaxis().SetTitle('Position [m]')
 gMaxBy.GetYaxis().SetTitle('B_{Y} [T]')
 gMaxBy.Write()
-
 
 gBx = TGraph( len(Z), Z, Bx )
 gBy = TGraph( len(Z), Z, By )
@@ -141,6 +65,7 @@ gBx.SetName("Bx")
 gBy.SetTitle('Measured magnetic field B_{Y}')
 gBy.GetXaxis().SetTitle('Position [m]')
 gBy.GetYaxis().SetTitle('B_{Y} [T]')
+gBy.SetMarkerStyle(26)
 gBy.SetName("By")
 
 gBz.SetTitle('Measured magnetic field B_{Z}')
@@ -153,7 +78,40 @@ gBy.Write()
 gBz.Write()
 
 
+# copy list and pop 4 off each side of MaxBy, Average max's
+MaxByZChopped = MaxByZ[:]
+MaxByChopped  = MaxBy[:]
 
+for i in range (6):
+  MaxByChopped.pop()
+  MaxByZChopped.pop()
+  MaxByChopped.pop(0)
+  MaxByZChopped.pop(0)
+
+
+print len(MaxByChopped), len(MaxByZChopped), len(MaxBy), len(MaxByZ)
+
+# just save absolute value
+MaxByChopped = map(abs, MaxByChopped)
+
+# average max field
+AvgMaxBy = numpy.mean(MaxByChopped)
+StdMaxBy = numpy.std(MaxByChopped)
+print 'Max By Average: ', AvgMaxBy, ' +/- ', StdMaxBy, ' [T]'
+
+# graph the distribution and fit a line while we're at it
+gMaxByChopped = TGraph(len(MaxByZChopped), array('d', MaxByZChopped), array('d', MaxByChopped))
+gMaxByChopped.SetName('MaxByChopped')
+gMaxByChopped.SetTitle('Calculated Max By')
+gMaxByChopped.GetXaxis().SetTitle('Position [m]')
+gMaxByChopped.GetYaxis().SetTitle('B_{Y} [T]')
+fline = TF1('fline', 'pol1', -3000, 3000)
+gMaxByChopped.Fit(fline, 'q')
+gMaxByChopped.SetMarkerStyle(32)
+gMaxByChopped.Write()
+print 'Max By linear fit parameters [0]+[1]x::', fline.GetParameter(0), fline.GetParameter(1)
+
+exit(0)
 
 
 # this is the particle which will travel through the field
