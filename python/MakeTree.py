@@ -245,10 +245,110 @@ gSpectrumIdeal.Write()
 
 
 
-# First field integral
+# Field integrals
 FInt1Bx = IntegralVector(Z, Bx)
-print FInt1Bx[-1]
-exit(0)
+FInt2Bx = IntegralVector(Z, FInt1Bx)
+FInt1By = IntegralVector(Z, By)
+FInt2By = IntegralVector(Z, FInt1By)
+
+auxI1X = FInt1Bx[-1]
+auxI2X = FInt2Bx[-1]
+auxI1Y = FInt1By[-1]
+auxI2Y = FInt2By[-1]
+
+
+KickSigmaS_m = 0.1
+sRange = PERIOD_LENGTH * (NPERIODS - 1)
+
+DistanceBetweenKicks = sRange - 6 * KickSigmaS_m
+KickEntryHorizontal =  0.5 * (sRange / DistanceBetweenKicks - 1) * auxI1Y - auxI2Y / DistanceBetweenKicks
+KickExitHorizontal  = -0.5 * (sRange / DistanceBetweenKicks + 1) * auxI1Y + auxI2Y / DistanceBetweenKicks
+KickEntryVertical   =  0.5 * (sRange / DistanceBetweenKicks - 1) * auxI1X - auxI2X / DistanceBetweenKicks
+KickExitVertical    = -0.5 * (sRange / DistanceBetweenKicks + 1) * auxI1X + auxI2X / DistanceBetweenKicks
+
+
+def AddToField (X, B, s0, sigma, intgr) :
+  "Add gaussian to field"
+
+  for i in range(len(X)):
+    B[i] += sRGssn( X[i], s0, sigma, intgr )
+
+def sRGssn(s, s0, sigma, intgr):
+  "gaussian"
+
+  t=(s-s0)/sigma
+  return (intgr*0.3989422804/sigma)*exp(-0.5*t*t)
+
+
+
+
+AddToField(Z, By, -sRange/2 + 3 * KickSigmaS_m, KickSigmaS_m, KickEntryHorizontal)
+AddToField(Z, By,  sRange/2 - 3 * KickSigmaS_m, KickSigmaS_m, KickEntryHorizontal)
+AddToField(Z, Bx, -sRange/2 + 3 * KickSigmaS_m, KickSigmaS_m, KickEntryVertical)
+AddToField(Z, Bx,  sRange/2 - 3 * KickSigmaS_m, KickSigmaS_m, KickEntryVertical)
+
+
+
+
+
+
+
+
+magFldCnt_Corr = SRWLMagFldC()
+magFldCnt_Corr.allocate(1)
+
+
+# Read data from file and make mag field object
+magFldCnt_Corr.arMagFld[0] = SRWLMagFld3D( array('d', Bx), array('d', By), array('d', Bz), 1, 1, len(Z), 0.0, 0.0, Z[-1] - Z[0], 1, 1, None, None, _arZ=array('d', Z))
+
+# Field interpolation method
+magFldCnt_Corr.arMagFld[0].interp = 4
+
+# ID center
+magFldCnt_Corr.arXc[0] = 0.0
+magFldCnt_Corr.arYc[0] = 0.0
+
+
+# Number of reps of field
+magFldCnt_Corr.arMagFld[0].nRep = 1
+
+# Center in Z of ID
+magFldCnt_Corr.arZc[0] = 0.0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Get the Z Values for the plot
+ZValues = [float(x) * ((partTraj.ctEnd - partTraj.ctStart) / float(partTraj.np)) for x in range(0, partTraj.np)]
+
+
+gElectronX_Corr = TGraph( len(ZValues), array('d', ZValues), partTraj.arX)
+gElectronY_Corr = TGraph( len(ZValues), array('d', ZValues), partTraj.arY)
+
+gElectronX_Corr.SetTitle('Electron Trajectory in X')
+gElectronX_Corr.GetXaxis().SetTitle('Z Position [m]')
+gElectronX_Corr.GetYaxis().SetTitle('X Position [m]')
+gElectronX_Corr.SetName("ElectronX_Corr")
+
+gElectronY_Corr.SetTitle('Electron Trajectory in Y')
+gElectronY_Corr.GetXaxis().SetTitle('Z Position [m]')
+gElectronY_Corr.GetYaxis().SetTitle('Y Position [m]')
+gElectronY_Corr.SetName("ElectronY_Corr")
+
+gElectronX_Corr.Write()
+gElectronY_Corr.Write()
+
 
 
 
@@ -259,6 +359,16 @@ gSpectrum.SetTitle('Simulated B-field Spectrum from Field Measurements')
 gSpectrum.GetXaxis().SetTitle('Energy [eV]')
 gSpectrum.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
 gSpectrum.Write()
+
+
+[SpectrumX, SpectrumY] = GetUndulatorSpectrum(magFldCnt_Corr)
+gSpectrum = TGraph( len(SpectrumX), array('d', SpectrumX), array('d', SpectrumY) )
+gSpectrum.SetName('SpectrumCorr')
+gSpectrum.SetTitle('Simulated B-field Spectrum from Field Measurements')
+gSpectrum.GetXaxis().SetTitle('Energy [eV]')
+gSpectrum.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
+gSpectrum.Write()
+
 
 
 fo.Write()
