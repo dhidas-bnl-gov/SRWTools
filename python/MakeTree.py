@@ -88,16 +88,31 @@ for i in range (6):
   MaxByChopped.pop(0)
   MaxByZChopped.pop(0)
 
+# just save absolute value
+MaxByChopped = map(abs, MaxByChopped)
 
 print len(MaxByChopped), len(MaxByZChopped), len(MaxBy), len(MaxByZ)
 
-# just save absolute value
-MaxByChopped = map(abs, MaxByChopped)
+# number of periods based on measured data
+NPERIODS = (len(MaxBy) - 4) / 2
+
+# Calculate the agerave period from Chopped
+HalfPeriodList = []
+for i in range(1, len(MaxByZ)):
+  HalfPeriodList.append( MaxByZ[i] - MaxByZ[i-1])
+
+# The period length as seen in data
+PERIOD_LENGTH = numpy.mean(HalfPeriodList) * 2
+print 'Period length measured: ', PERIOD_LENGTH
+
 
 # average max field
 AvgMaxBy = numpy.mean(MaxByChopped)
 StdMaxBy = numpy.std(MaxByChopped)
 print 'Max By Average: ', AvgMaxBy, ' +/- ', StdMaxBy, ' [T]'
+
+# peak By to use in calculations
+PEAK_BY = AvgMaxBy
 
 # graph the distribution and fit a line while we're at it
 gMaxByChopped = TGraph(len(MaxByZChopped), array('d', MaxByZChopped), array('d', MaxByChopped))
@@ -111,83 +126,59 @@ gMaxByChopped.SetMarkerStyle(32)
 gMaxByChopped.Write()
 print 'Max By linear fit parameters [0]+[1]x::', fline.GetParameter(0), fline.GetParameter(1)
 
-exit(0)
 
 
-# this is the particle which will travel through the field
-part = SRWLParticle()
-part.x     =  0.0 # Initial position x [m]
-part.y     =  0.0 # Initial position y [m]
-part.xp    =  0.0 # Iitial velocity
-part.yp    =  0.0 # Initial velocity
-part.gamma =  3/0.51099890221e-03 # Relative Energy
-part.relE0 =  1 # Electron Rest Mass
-part.nq    = -1 # Electron Charge
+
+
+
+
 
 
 
 # Defining Magnetic Field container:
-magFldCnt = SRWLMagFldC()
-magFldCnt.allocate(1)
+magFldCnt_Data = SRWLMagFldC()
+magFldCnt_Data.allocate(1)
 
 
 # Read data from file and make mag field object
-magFldCnt.arMagFld[0] = ReadHallProbeDataSRW(InFileName)
+magFldCnt_Data.arMagFld[0] = ReadHallProbeDataSRW(InFileName)
 
 # Field interpolation method
-magFldCnt.arMagFld[0].interp = 4
+magFldCnt_Data.arMagFld[0].interp = 4
 
 # ID center
-magFldCnt.arXc[0] = 0.0
-magFldCnt.arYc[0] = 0.0
+magFldCnt_Data.arXc[0] = 0.0
+magFldCnt_Data.arYc[0] = 0.0
 
 
 # Number of reps of field
-magFldCnt.arMagFld[0].nRep = 1
+magFldCnt_Data.arMagFld[0].nRep = 1
 
 # Center in Z of ID
-magFldCnt.arZc[0] = 0.0
+magFldCnt_Data.arZc[0] = 0.0
 
-# Starting position in z of particle
-part.z = 0.0 - 0.5*magFldCnt.arMagFld[0].rz
-
-# Trajectory structure, where the results will be stored
-partTraj = SRWLPrtTrj()
-partTraj.partInitCond = part
-
-# Number of trajectory points
-partTraj.allocate(10001, True)
-partTraj.ctStart = 0
-partTraj.ctEnd = magFldCnt.arMagFld[0].rz
-
-
-# Calculation (SRWLIB function call)
-partTraj = srwl.CalcPartTraj(partTraj, magFldCnt, [1])
+# Get the electron trajectory
+partTraj = GetElectronTrajectory(magFldCnt_Data, -1, 1)
 
 # Get the Z Values for the plot
 ZValues = [float(x) * ((partTraj.ctEnd - partTraj.ctStart) / float(partTraj.np)) for x in range(0, partTraj.np)]
 
-# Convert to mm from m
-for i in range(partTraj.np):
-    partTraj.arX[i] *= 1000
-    partTraj.arY[i] *= 1000
- 
 
-gElectronX = TGraph( len(ZValues), array('d', ZValues), partTraj.arX)
-gElectronY = TGraph( len(ZValues), array('d', ZValues), partTraj.arY)
+gElectronX_Data = TGraph( len(ZValues), array('d', ZValues), partTraj.arX)
+gElectronY_Data = TGraph( len(ZValues), array('d', ZValues), partTraj.arY)
 
-gElectronX.SetTitle('Electron Trajectory in X')
-gElectronX.GetXaxis().SetTitle('Z Position [m]')
-gElectronX.GetYaxis().SetTitle('X Position [m]')
-gElectronX.SetName("ElectronX")
+gElectronX_Data.SetTitle('Electron Trajectory in X')
+gElectronX_Data.GetXaxis().SetTitle('Z Position [m]')
+gElectronX_Data.GetYaxis().SetTitle('X Position [m]')
+gElectronX_Data.SetName("ElectronX_Data")
 
-gElectronY.SetTitle('Electron Trajectory in Y')
-gElectronY.GetXaxis().SetTitle('Z Position [m]')
-gElectronY.GetYaxis().SetTitle('Y Position [m]')
-gElectronY.SetName("ElectronY")
+gElectronY_Data.SetTitle('Electron Trajectory in Y')
+gElectronY_Data.GetXaxis().SetTitle('Z Position [m]')
+gElectronY_Data.GetYaxis().SetTitle('Y Position [m]')
+gElectronY_Data.SetName("ElectronY_Data")
 
-gElectronX.Write()
-gElectronY.Write()
+gElectronX_Data.Write()
+gElectronY_Data.Write()
 
 
 
@@ -197,14 +188,12 @@ gElectronY.Write()
 
 
 # Defining Magnetic Field container:
-magFldCnt = SRWLMagFldC()
-magFldCnt.allocate(1)
 
 # define the undulator specs
-numPer = 70
-undPer = 0.021
-Bx = 0.0
-By = 1.0
+numPer = NPERIODS
+undPer = PERIOD_LENGTH
+undBx = 0.0
+undBy = PEAK_BY
 phBx = 0
 phBy = 0
 sBx = 1
@@ -213,12 +202,38 @@ xcID = 0
 ycID = 0
 zcID = 0
 
-und = SRWLMagFldU([SRWLMagFldH(1, 'v', By, phBy, sBy, 1), SRWLMagFldH(1, 'h', Bx, phBx, sBx, 1)], undPer, numPer)
-magFldCnt = SRWLMagFldC([und], array('d', [xcID]), array('d', [ycID]), array('d', [zcID])) #Container of all Field Elements
+
+und = SRWLMagFldU([SRWLMagFldH(1, 'v', undBy, phBy, sBy, 1), SRWLMagFldH(1, 'h', undBx, phBx, sBx, 1)], undPer, numPer)
+magFldCnt_Ideal = SRWLMagFldC([und], array('d', [xcID]), array('d', [ycID]), array('d', [zcID])) #Container of all Field Elements
+
+# Get the electron trajectory
+partTraj = GetElectronTrajectory(magFldCnt_Ideal, -1, 1)
+
+# Get the Z Values for the plot
+ZValues = [float(x) * ((partTraj.ctEnd - partTraj.ctStart) / float(partTraj.np)) for x in range(0, partTraj.np)]
 
 
-[SpectrumIdealX, SpectrumIdealY] = GetUndulatorSpectrum(magFldCnt)
+gElectronX_Ideal = TGraph( len(ZValues), array('d', ZValues), partTraj.arX)
+gElectronY_Ideal = TGraph( len(ZValues), array('d', ZValues), partTraj.arY)
 
+gElectronX_Ideal.SetTitle('Electron Trajectory in X')
+gElectronX_Ideal.GetXaxis().SetTitle('Z Position [m]')
+gElectronX_Ideal.GetYaxis().SetTitle('X Position [m]')
+gElectronX_Ideal.SetName("ElectronX_Ideal")
+
+gElectronY_Ideal.SetTitle('Electron Trajectory in Y')
+gElectronY_Ideal.GetXaxis().SetTitle('Z Position [m]')
+gElectronY_Ideal.GetYaxis().SetTitle('Y Position [m]')
+gElectronY_Ideal.SetName("ElectronY_Ideal")
+
+gElectronX_Ideal.Write()
+gElectronY_Ideal.Write()
+
+
+
+
+
+[SpectrumIdealX, SpectrumIdealY] = GetUndulatorSpectrum(magFldCnt_Ideal)
 gSpectrumIdeal = TGraph( len(SpectrumIdealX), array('d', SpectrumIdealX), array('d', SpectrumIdealY) )
 gSpectrumIdeal.SetName('SpectrumIdeal')
 gSpectrumIdeal.SetTitle('Simulated B-field Spectrum')
@@ -230,30 +245,17 @@ gSpectrumIdeal.Write()
 
 
 
-# Read data from file and make mag field object
-magFldCnt.arMagFld[0] = ReadHallProbeDataSRW(InFileName)
-
-# Field interpolation method
-magFldCnt.arMagFld[0].interp = 4
-
-# ID center
-magFldCnt.arXc[0] = 0.0
-magFldCnt.arYc[0] = 0.0
-
-
-# Number of reps of field
-magFldCnt.arMagFld[0].nRep = 1
-
-# Center in Z of ID
-magFldCnt.arZc[0] = 0.0
+# First field integral
+FInt1Bx = IntegralVector(Z, Bx)
+print FInt1Bx[-1]
+exit(0)
 
 
 
-[SpectrumX, SpectrumY] = GetUndulatorSpectrum(magFldCnt)
-
+[SpectrumX, SpectrumY] = GetUndulatorSpectrum(magFldCnt_Data)
 gSpectrum = TGraph( len(SpectrumX), array('d', SpectrumX), array('d', SpectrumY) )
-gSpectrum.SetName('Spectrum')
-gSpectrum.SetTitle('Simulated B-field Spectrum')
+gSpectrum.SetName('SpectrumData')
+gSpectrum.SetTitle('Simulated B-field Spectrum from Field Measurements')
 gSpectrum.GetXaxis().SetTitle('Energy [eV]')
 gSpectrum.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
 gSpectrum.Write()

@@ -101,7 +101,50 @@ def IntegralVector (X, Y):
 
 
 
-def GetUndulatorSpectrum (magFldCnt,):
+
+def GetElectronTrajectory (magFldCnt, ZStart, ZEnd):
+  "given a field return the trajectory for an e- that starts at 000"
+
+
+  # this is the particle which will travel through the field
+  part = SRWLParticle()
+  part.x     =  0.0 # Initial position x [m]
+  part.y     =  0.0 # Initial position y [m]
+  part.xp    =  0.0 # Iitial velocity
+  part.yp    =  0.0 # Initial velocity
+  part.gamma =  3/0.51099890221e-03 # Relative Energy
+  part.relE0 =  1 # Electron Rest Mass
+  part.nq    = -1 # Electron Charge
+
+
+  # Starting position in z of particle
+  part.z = ZStart
+
+  # Trajectory structure, where the results will be stored
+  partTraj = SRWLPrtTrj()
+  partTraj.partInitCond = part
+
+  # Number of trajectory points
+  partTraj.allocate(10001, True)
+  partTraj.ctStart = 0
+  partTraj.ctEnd = ZEnd - ZStart
+
+
+  # Calculation (SRWLIB function call)
+  partTraj = srwl.CalcPartTraj(partTraj, magFldCnt, [1])
+
+  return partTraj
+
+
+
+
+
+
+
+
+
+
+def GetUndulatorSpectrum (magFldCnt):
   "Get the spectrum given und"
 
   # Electron Beam
@@ -117,7 +160,7 @@ def GetUndulatorSpectrum (magFldCnt,):
   wfr1.allocate(10000, 1, 1)
   wfr1.mesh.zStart = 20.
   wfr1.mesh.eStart = 10.
-  wfr1.mesh.eFin = 30000.
+  wfr1.mesh.eFin = 50000.
   wfr1.mesh.xStart = 0.
   wfr1.mesh.xFin = 0
   wfr1.mesh.yStart = 0
