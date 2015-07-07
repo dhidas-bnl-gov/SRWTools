@@ -94,7 +94,7 @@ MaxByChopped = map(abs, MaxByChopped)
 print len(MaxByChopped), len(MaxByZChopped), len(MaxBy), len(MaxByZ)
 
 # number of periods based on measured data
-NPERIODS = (len(MaxBy) - 4) / 2
+NPERIODS = (len(MaxBy) - 4) / 2 
 
 # Calculate the agerave period from Chopped
 HalfPeriodList = []
@@ -207,14 +207,14 @@ und = SRWLMagFldU([SRWLMagFldH(1, 'v', undBy, phBy, sBy, 1), SRWLMagFldH(1, 'h',
 magFldCnt_Ideal = SRWLMagFldC([und], array('d', [xcID]), array('d', [ycID]), array('d', [zcID])) #Container of all Field Elements
 
 # Get the electron trajectory
-partTraj = GetElectronTrajectory(magFldCnt_Ideal, -1, 1)
+partTraj_Ideal = GetElectronTrajectory(magFldCnt_Ideal, -1, 1)
 
 # Get the Z Values for the plot
-ZValues = [float(x) * ((partTraj.ctEnd - partTraj.ctStart) / float(partTraj.np)) for x in range(0, partTraj.np)]
+ZValues = [float(x) * ((partTraj_Ideal.ctEnd - partTraj_Ideal.ctStart) / float(partTraj_Ideal.np)) for x in range(0, partTraj_Ideal.np)]
 
 
-gElectronX_Ideal = TGraph( len(ZValues), array('d', ZValues), partTraj.arX)
-gElectronY_Ideal = TGraph( len(ZValues), array('d', ZValues), partTraj.arY)
+gElectronX_Ideal = TGraph( len(ZValues), array('d', ZValues), partTraj_Ideal.arX)
+gElectronY_Ideal = TGraph( len(ZValues), array('d', ZValues), partTraj_Ideal.arY)
 
 gElectronX_Ideal.SetTitle('Electron Trajectory in X')
 gElectronX_Ideal.GetXaxis().SetTitle('Z Position [m]')
@@ -283,9 +283,9 @@ def sRGssn(s, s0, sigma, intgr):
 
 
 AddToField(Z, By, -sRange/2 + 3 * KickSigmaS_m, KickSigmaS_m, KickEntryHorizontal)
-AddToField(Z, By,  sRange/2 - 3 * KickSigmaS_m, KickSigmaS_m, KickEntryHorizontal)
+AddToField(Z, By,  sRange/2 - 3 * KickSigmaS_m, KickSigmaS_m, KickExitHorizontal)
 AddToField(Z, Bx, -sRange/2 + 3 * KickSigmaS_m, KickSigmaS_m, KickEntryVertical)
-AddToField(Z, Bx,  sRange/2 - 3 * KickSigmaS_m, KickSigmaS_m, KickEntryVertical)
+AddToField(Z, Bx,  sRange/2 - 3 * KickSigmaS_m, KickSigmaS_m, KickExitVertical)
 
 
 
@@ -298,7 +298,7 @@ magFldCnt_Corr = SRWLMagFldC()
 magFldCnt_Corr.allocate(1)
 
 
-# Read data from file and make mag field object
+# Make magnetic field object for corrected field
 magFldCnt_Corr.arMagFld[0] = SRWLMagFld3D( array('d', Bx), array('d', By), array('d', Bz), 1, 1, len(Z), 0.0, 0.0, Z[-1] - Z[0], 1, 1, None, None, _arZ=array('d', Z))
 
 # Field interpolation method
@@ -322,6 +322,8 @@ magFldCnt_Corr.arZc[0] = 0.0
 
 
 
+# Get the electron trajectory
+partTraj_Corr = GetElectronTrajectory(magFldCnt_Corr, -1, 1)
 
 
 
@@ -330,11 +332,11 @@ magFldCnt_Corr.arZc[0] = 0.0
 
 
 # Get the Z Values for the plot
-ZValues = [float(x) * ((partTraj.ctEnd - partTraj.ctStart) / float(partTraj.np)) for x in range(0, partTraj.np)]
+ZValues_Corr = [float(x) * ((partTraj_Corr.ctEnd - partTraj_Corr.ctStart) / float(partTraj_Corr.np)) for x in range(0, partTraj_Corr.np)]
 
 
-gElectronX_Corr = TGraph( len(ZValues), array('d', ZValues), partTraj.arX)
-gElectronY_Corr = TGraph( len(ZValues), array('d', ZValues), partTraj.arY)
+gElectronX_Corr = TGraph( len(ZValues_Corr), array('d', ZValues_Corr), partTraj_Corr.arX)
+gElectronY_Corr = TGraph( len(ZValues_Corr), array('d', ZValues_Corr), partTraj_Corr.arY)
 
 gElectronX_Corr.SetTitle('Electron Trajectory in X')
 gElectronX_Corr.GetXaxis().SetTitle('Z Position [m]')
@@ -352,22 +354,22 @@ gElectronY_Corr.Write()
 
 
 
-[SpectrumX, SpectrumY] = GetUndulatorSpectrum(magFldCnt_Data)
-gSpectrum = TGraph( len(SpectrumX), array('d', SpectrumX), array('d', SpectrumY) )
-gSpectrum.SetName('SpectrumData')
-gSpectrum.SetTitle('Simulated B-field Spectrum from Field Measurements')
-gSpectrum.GetXaxis().SetTitle('Energy [eV]')
-gSpectrum.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
-gSpectrum.Write()
+[SpectrumDataX, SpectrumDataY] = GetUndulatorSpectrum(magFldCnt_Data)
+gSpectrumData = TGraph( len(SpectrumDataX), array('d', SpectrumDataX), array('d', SpectrumDataY) )
+gSpectrumData.SetName('SpectrumData')
+gSpectrumData.SetTitle('Simulated B-field Spectrum from Field Measurements')
+gSpectrumData.GetXaxis().SetTitle('Energy [eV]')
+gSpectrumData.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
+gSpectrumData.Write()
 
 
-[SpectrumX, SpectrumY] = GetUndulatorSpectrum(magFldCnt_Corr)
-gSpectrum = TGraph( len(SpectrumX), array('d', SpectrumX), array('d', SpectrumY) )
-gSpectrum.SetName('SpectrumCorr')
-gSpectrum.SetTitle('Simulated B-field Spectrum from Field Measurements')
-gSpectrum.GetXaxis().SetTitle('Energy [eV]')
-gSpectrum.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
-gSpectrum.Write()
+[SpectrumCorrX, SpectrumCorrY] = GetUndulatorSpectrum(magFldCnt_Corr)
+gSpectrumCorr = TGraph( len(SpectrumCorrX), array('d', SpectrumCorrX), array('d', SpectrumCorrY) )
+gSpectrumCorr.SetName('SpectrumCorr')
+gSpectrumCorr.SetTitle('Simulated B-field Spectrum from Field Measurements')
+gSpectrumCorr.GetXaxis().SetTitle('Energy [eV]')
+gSpectrumCorr.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
+gSpectrumCorr.Write()
 
 
 
