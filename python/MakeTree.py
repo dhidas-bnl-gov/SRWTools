@@ -5,36 +5,47 @@ from array import array
 import sys
 from SRWToolsUtil import *
 
+from ROOT import TLine
+
+# Input and output files are given on command line
 InFileName = sys.argv[1]
 OutFileName = sys.argv[2]
 
+# Open the input and output files.  Output file is ROOT format
 fi = open(InFileName, 'r')
 fo = TFile(OutFileName, 'recreate')
+
+# Create a TTree for data 
 t  = TTree('mmlabdata', 'mmlabdata')
 
+# Create variables for TTree filling
 tZ  = numpy.zeros(1, dtype=float)
 tBx = numpy.zeros(1, dtype=float)
 tBy = numpy.zeros(1, dtype=float)
 tBz = numpy.zeros(1, dtype=float)
 
+# Create branches for the tree
 t.Branch('Z',  tZ,  'Z')
 t.Branch('Bx', tBx, 'Bx')
 t.Branch('By', tBy, 'By')
 t.Branch('Bz', tBz, 'Bz')
 
+# Create arrays for program use
 Z  = array('d')
 Bx = array('d')
 By = array('d')
 Bz = array('d')
 
 
+# Loop over all entries in the input file
 for l in fi:
   [tZ[0], tBx[0], tBy[0], tBz[0]] = map(float, l.split())
 
-  # make in SI unites
+  # Make in SI unites and fill the Tree
   tZ[0] /= 1000.
   t.Fill()
 
+  # Fill program use arrays with data
   Z.append(tZ[0])
   Bx.append(tBx[0])
   By.append(tBy[0])
@@ -53,6 +64,7 @@ gMaxBy.GetXaxis().SetTitle('Position [m]')
 gMaxBy.GetYaxis().SetTitle('B_{Y} [T]')
 gMaxBy.Write()
 
+# TGraphs for measured Bx By and Bz vs Z
 gBx = TGraph( len(Z), Z, Bx )
 gBy = TGraph( len(Z), Z, By )
 gBz = TGraph( len(Z), Z, Bz )
@@ -73,15 +85,16 @@ gBz.GetXaxis().SetTitle('Position [m]')
 gBz.GetYaxis().SetTitle('B_{Z} [T]')
 gBz.SetName("Bz")
 
+# Write graphs to open TFile
 gBx.Write()
 gBy.Write()
 gBz.Write()
 
 
-# copy list and pop 4 off each side of MaxBy, Average max's
+# Copy list and pop off each side of MaxBy, Average max's.
+# Here I am avoiding the fringe on both sides
 MaxByZChopped = MaxByZ[:]
 MaxByChopped  = MaxBy[:]
-
 for i in range (6):
   MaxByChopped.pop()
   MaxByZChopped.pop()
@@ -91,9 +104,10 @@ for i in range (6):
 # just save absolute value
 MaxByChopped = map(abs, MaxByChopped)
 
-print len(MaxByChopped), len(MaxByZChopped), len(MaxBy), len(MaxByZ)
+# For comparing the number of peaks found and taken off on the sides
+print 'MaxBy MaxByChopped:', len(MaxByChopped), len(MaxBy)
 
-# number of periods based on measured data
+# Number of periods based on measured data
 NPERIODS = (len(MaxBy) - 4) / 2 
 
 # Calculate the agerave period from Chopped
@@ -103,18 +117,57 @@ for i in range(1, len(MaxByZ)):
 
 # The period length as seen in data
 PERIOD_LENGTH = numpy.mean(HalfPeriodList) * 2
-print 'Period length measured: ', PERIOD_LENGTH
+print 'Period length measured: ', PERIOD_LENGTH, '[m]'
 
 
-# average max field
+# Average max field
 AvgMaxBy = numpy.mean(MaxByChopped)
 StdMaxBy = numpy.std(MaxByChopped)
 print 'Max By Average: ', AvgMaxBy, ' +/- ', StdMaxBy, ' [T]'
 
-# peak By to use in calculations
+# Magnetic center point of undulator
+UNDULATOR_ZCENTER = numpy.sum(MaxByZChopped)
+print 'UNDULATOR_ZCENTER: ', UNDULATOR_ZCENTER, '[m]'
+
+# Start and end of Undulator in Z
+UNDULATOR_ZSTART = UNDULATOR_ZCENTER - ( PERIOD_LENGTH * (NPERIODS + 4) / 2)
+UNDULATOR_ZEND   = UNDULATOR_ZCENTER + ( PERIOD_LENGTH * (NPERIODS + 4) / 2)
+UNDULATOR_LENGTH = UNDULATOR_ZEND - UNDULATOR_ZSTART
+print 'UNDULATOR ZSTART ZEND LENGTH:', UNDULATOR_ZSTART, UNDULATOR_ZEND, UNDULATOR_LENGTH
+
+lStart = TLine(UNDULATOR_ZSTART, -1, UNDULATOR_ZSTART, 1)
+lStart.SetLineColor(2)
+lCenter = TLine(UNDULATOR_ZCENTER, -1, UNDULATOR_ZCENTER, 1)
+lCenter.SetLineColor(2)
+lEnd = TLine(UNDULATOR_ZEND, -1, UNDULATOR_ZEND, 1)
+lEnd.SetLineColor(2)
+
+cBxLines = TCanvas('Undulator_Bx')
+gBx.Draw("ACP")
+lStart.Draw()
+lCenter.Draw()
+lEnd.Draw()
+cBxLines.Write()
+
+cByLines = TCanvas('Undulator_By')
+gBy.Draw("ACP")
+lStart.Draw()
+lCenter.Draw()
+lEnd.Draw()
+cByLines.Write()
+
+cBzLines = TCanvas('Undulator_Bz')
+gBz.Draw("ACP")
+lStart.Draw()
+lCenter.Draw()
+lEnd.Draw()
+cBzLines.Write()
+
+
+# Peak By to use in calculations
 PEAK_BY = AvgMaxBy
 
-# graph the distribution and fit a line while we're at it
+# Graph the distribution and fit a line while we're at it
 gMaxByChopped = TGraph(len(MaxByZChopped), array('d', MaxByZChopped), array('d', MaxByChopped))
 gMaxByChopped.SetName('MaxByChopped')
 gMaxByChopped.SetTitle('Calculated Max By')
@@ -141,14 +194,14 @@ magFldCnt_Data.allocate(1)
 
 
 # Read data from file and make mag field object
-magFldCnt_Data.arMagFld[0] = ReadHallProbeDataSRW(InFileName)
+magFldCnt_Data.arMagFld[0] = ReadHallProbeDataSRW(InFileName, UNDULATOR_ZSTART, UNDULATOR_ZEND)
 
 # Field interpolation method
 magFldCnt_Data.arMagFld[0].interp = 4
 
 # ID center
 magFldCnt_Data.arXc[0] = 0.0
-magFldCnt_Data.arYc[0] = 0.0
+magFldCnt_Data.arYc[0] = UNDULATOR_ZCENTER
 
 
 # Number of reps of field
@@ -200,7 +253,7 @@ sBx = 1
 sBy = 1
 xcID = 0
 ycID = 0
-zcID = 0
+zcID = UNDULATOR_ZCENTER
 
 
 und = SRWLMagFldU([SRWLMagFldH(1, 'v', undBy, phBy, sBy, 1), SRWLMagFldH(1, 'h', undBx, phBx, sBx, 1)], undPer, numPer)
@@ -242,7 +295,19 @@ gSpectrumIdeal.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
 gSpectrumIdeal.Write()
 
 
+exit(0)
 
+
+def dimdelta (X) :
+  "step size based on last minus first divide by N-1"
+
+  N = len(X) - 1
+  return (X[-1] - X[0]) / N
+
+
+def dimoffset (X) :
+  "return the 0th element.  Should be Z im m"
+  return X[0]
 
 
 # Field integrals
@@ -257,15 +322,33 @@ auxI1Y = FInt1By[-1]
 auxI2Y = FInt2By[-1]
 
 
-KickSigmaS_m = 0.1
-sRange = PERIOD_LENGTH * (NPERIODS - 1)
 
-DistanceBetweenKicks = sRange - 6 * KickSigmaS_m
-KickEntryHorizontal =  0.5 * (sRange / DistanceBetweenKicks - 1) * auxI1Y - auxI2Y / DistanceBetweenKicks
-KickExitHorizontal  = -0.5 * (sRange / DistanceBetweenKicks + 1) * auxI1Y + auxI2Y / DistanceBetweenKicks
-KickEntryVertical   =  0.5 * (sRange / DistanceBetweenKicks - 1) * auxI1X - auxI2X / DistanceBetweenKicks
-KickExitVertical    = -0.5 * (sRange / DistanceBetweenKicks + 1) * auxI1X + auxI2X / DistanceBetweenKicks
+# Get sRangeY = length of undulator, not entire field
+npAuxFldInt = len(Bx)
+sRangeX = (npAuxFldInt - 1) * dimdelta(Z)
 
+npAuxFldInt = len(By)
+sRangeY = (npAuxFldInt - 1) * dimdelta(Z)
+
+
+
+
+# Distance between kicks
+DistanceBetweenKicks = PERIOD_LENGTH * NPERIODS
+sCenX = 0
+sCenY = 0
+
+# RMS Kick Length
+rmsLenKick = 0.0001
+
+KickEntryHorizontal =  0.5 * (sRangeY / DistanceBetweenKicks - 1) * auxI1Y - auxI2Y / DistanceBetweenKicks
+KickExitHorizontal  = -0.5 * (sRangeY / DistanceBetweenKicks + 1) * auxI1Y + auxI2Y / DistanceBetweenKicks
+KickEntryVertical   =  0.5 * (sRangeX / DistanceBetweenKicks - 1) * auxI1X - auxI2X / DistanceBetweenKicks
+KickExitVertical    = -0.5 * (sRangeX / DistanceBetweenKicks + 1) * auxI1X + auxI2X / DistanceBetweenKicks
+
+
+print 'DistanceBetweenKicks: ', DistanceBetweenKicks
+print 'Kick EnH ExH EnV ExV: ', KickEntryHorizontal, KickExitHorizontal, KickEntryVertical, KickExitVertical
 
 def AddToField (X, B, s0, sigma, intgr) :
   "Add gaussian to field"
@@ -280,15 +363,21 @@ def sRGssn(s, s0, sigma, intgr):
   return (intgr*0.3989422804/sigma)*exp(-0.5*t*t)
 
 
+HalfDistBwKicks = 0.5 * DistanceBetweenKicks
+
+AddToField(Z, By, sCenY - HalfDistBwKicks, rmsLenKick, KickEntryHorizontal)
+AddToField(Z, By, sCenY + HalfDistBwKicks, rmsLenKick, KickExitHorizontal)
+AddToField(Z, Bx, sCenX - HalfDistBwKicks, rmsLenKick, KickEntryVertical)
+AddToField(Z, Bx, sCenX + HalfDistBwKicks, rmsLenKick, KickExitVertical)
 
 
-AddToField(Z, By, -sRange/2 + 3 * KickSigmaS_m, KickSigmaS_m, KickEntryHorizontal)
-AddToField(Z, By,  sRange/2 - 3 * KickSigmaS_m, KickSigmaS_m, KickExitHorizontal)
-AddToField(Z, Bx, -sRange/2 + 3 * KickSigmaS_m, KickSigmaS_m, KickEntryVertical)
-AddToField(Z, Bx,  sRange/2 - 3 * KickSigmaS_m, KickSigmaS_m, KickExitVertical)
+#AddToField(Z, By, -sRangeY/2 + 3 * rmsLenKick, rmsLenKick, KickEntryHorizontal)
+#AddToField(Z, By,  sRangeY/2 - 3 * rmsLenKick, rmsLenKick, KickExitHorizontal)
+#AddToField(Z, Bx, -sRangeX/2 + 3 * rmsLenKick, rmsLenKick, KickEntryVertical)
+#AddToField(Z, Bx,  sRangeX/2 - 3 * rmsLenKick, rmsLenKick, KickExitVertical)
 
 
-
+exit(0)
 
 
 
