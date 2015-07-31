@@ -28,12 +28,12 @@ print IntegralBx[-1:][0] * 1e4, IntegralBy[-1:][0] * 1e4, '  Gm'
 Integral2Bx = IntegralVector(Z, IntegralBx)
 Integral2By = IntegralVector(Z, IntegralBy)
 
-print Bx2Integral[-1:][0] * 1e4, By2Integral[-1:][0] * 1e4, '  Gm^2'
+print Integral2Bx[-1:][0] * 1e4, Integral2By[-1:][0] * 1e4, '  Gm^2'
 
 plt.subplot(223)
-plt.plot(Z, Bx2Integral)
+plt.plot(Z, Integral2Bx)
 plt.subplot(224)
-plt.plot(Z, By2Integral)
+plt.plot(Z, Integral2By)
 plt.show()
 
 

@@ -161,10 +161,10 @@ def GetUndulatorSpectrum (magFldCnt):
   wfr1.mesh.zStart = 20.
   wfr1.mesh.eStart = 10.
   wfr1.mesh.eFin = 50000.
-  wfr1.mesh.xStart = 0.
-  wfr1.mesh.xFin = 0
-  wfr1.mesh.yStart = 0
-  wfr1.mesh.yFin = 0
+  wfr1.mesh.xStart = -0.001
+  wfr1.mesh.xFin = 0.001
+  wfr1.mesh.yStart = -0.001
+  wfr1.mesh.yFin = 0.001
   wfr1.partBeam = elecBeam
 
 

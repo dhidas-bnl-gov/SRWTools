@@ -51,6 +51,8 @@ for l in fi:
   By.append(tBy[0])
   Bz.append(tBz[0])
 
+# Close file
+fi.close()
 
 # Get the max and mins in the field
 [MaxListInd, MaxListBy] = FindMaxAndMins(Z, By)
@@ -295,7 +297,6 @@ gSpectrumIdeal.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
 gSpectrumIdeal.Write()
 
 
-exit(0)
 
 
 def dimdelta (X) :
@@ -305,9 +306,6 @@ def dimdelta (X) :
   return (X[-1] - X[0]) / N
 
 
-def dimoffset (X) :
-  "return the 0th element.  Should be Z im m"
-  return X[0]
 
 
 # Field integrals
@@ -334,12 +332,13 @@ sRangeY = (npAuxFldInt - 1) * dimdelta(Z)
 
 
 # Distance between kicks
-DistanceBetweenKicks = PERIOD_LENGTH * NPERIODS
+#DistanceBetweenKicks = PERIOD_LENGTH * (NPERIODS + 4)
+DistanceBetweenKicks = UNDULATOR_ZEND - UNDULATOR_ZSTART
 sCenX = 0
 sCenY = 0
 
-# RMS Kick Length
-rmsLenKick = 0.0001
+# RMS Kick Length in [m]
+rmsLenKick = 0.050
 
 KickEntryHorizontal =  0.5 * (sRangeY / DistanceBetweenKicks - 1) * auxI1Y - auxI2Y / DistanceBetweenKicks
 KickExitHorizontal  = -0.5 * (sRangeY / DistanceBetweenKicks + 1) * auxI1Y + auxI2Y / DistanceBetweenKicks
@@ -365,10 +364,10 @@ def sRGssn(s, s0, sigma, intgr):
 
 HalfDistBwKicks = 0.5 * DistanceBetweenKicks
 
-AddToField(Z, By, sCenY - HalfDistBwKicks, rmsLenKick, KickEntryHorizontal)
-AddToField(Z, By, sCenY + HalfDistBwKicks, rmsLenKick, KickExitHorizontal)
-AddToField(Z, Bx, sCenX - HalfDistBwKicks, rmsLenKick, KickEntryVertical)
-AddToField(Z, Bx, sCenX + HalfDistBwKicks, rmsLenKick, KickExitVertical)
+AddToField(Z, By, UNDULATOR_ZCENTER - HalfDistBwKicks, rmsLenKick, KickEntryHorizontal)
+AddToField(Z, By, UNDULATOR_ZCENTER + HalfDistBwKicks, rmsLenKick, KickExitHorizontal)
+AddToField(Z, Bx, UNDULATOR_ZCENTER - HalfDistBwKicks, rmsLenKick, KickEntryVertical)
+AddToField(Z, Bx, UNDULATOR_ZCENTER + HalfDistBwKicks, rmsLenKick, KickExitVertical)
 
 
 #AddToField(Z, By, -sRangeY/2 + 3 * rmsLenKick, rmsLenKick, KickEntryHorizontal)
@@ -377,8 +376,15 @@ AddToField(Z, Bx, sCenX + HalfDistBwKicks, rmsLenKick, KickExitVertical)
 #AddToField(Z, Bx,  sRangeX/2 - 3 * rmsLenKick, rmsLenKick, KickExitVertical)
 
 
+BxCorrI1 = IntegralVector(Z, Bx)
+ByCorrI1 = IntegralVector(Z, By)
+BxCorrI2 = IntegralVector(Z, BxCorrI1)
+ByCorrI2 = IntegralVector(Z, ByCorrI1)
+print "Befor Correction 1st Integral Bx By", FInt1Bx[-1],  FInt1By[-1]
+print "After Correction 1st Integral Bx By", BxCorrI1[-1], ByCorrI1[-1]
+print "Befor Correction 2nd Integral Bx By", FInt2Bx[-1],  FInt2By[-1]
+print "After Correction 2nd Integral Bx By", BxCorrI2[-1], ByCorrI2[-1]
 exit(0)
-
 
 
 
@@ -412,6 +418,7 @@ magFldCnt_Corr.arZc[0] = 0.0
 
 
 # Get the electron trajectory
+#partTraj_Corr = GetElectronTrajectory(magFldCnt_Corr, UNDULATOR_ZSTART - 1.50, UNDULATOR_ZEND + 1.50)
 partTraj_Corr = GetElectronTrajectory(magFldCnt_Corr, -1, 1)
 
 
@@ -441,6 +448,7 @@ gElectronX_Corr.Write()
 gElectronY_Corr.Write()
 
 
+exit(0)
 
 
 [SpectrumDataX, SpectrumDataY] = GetUndulatorSpectrum(magFldCnt_Data)
