@@ -203,14 +203,11 @@ magFldCnt_Data.arMagFld[0].interp = 4
 
 # ID center
 magFldCnt_Data.arXc[0] = 0.0
-magFldCnt_Data.arYc[0] = UNDULATOR_ZCENTER
-
+magFldCnt_Data.arYc[0] = 0.0
+magFldCnt_Data.arZc[0] = UNDULATOR_ZCENTER
 
 # Number of reps of field
 magFldCnt_Data.arMagFld[0].nRep = 1
-
-# Center in Z of ID
-magFldCnt_Data.arZc[0] = 0.0
 
 # Get the electron trajectory
 partTraj = GetElectronTrajectory(magFldCnt_Data, -1, 1)
@@ -384,7 +381,6 @@ print "Befor Correction 1st Integral Bx By", FInt1Bx[-1],  FInt1By[-1]
 print "After Correction 1st Integral Bx By", BxCorrI1[-1], ByCorrI1[-1]
 print "Befor Correction 2nd Integral Bx By", FInt2Bx[-1],  FInt2By[-1]
 print "After Correction 2nd Integral Bx By", BxCorrI2[-1], ByCorrI2[-1]
-exit(0)
 
 
 
@@ -402,30 +398,16 @@ magFldCnt_Corr.arMagFld[0].interp = 4
 # ID center
 magFldCnt_Corr.arXc[0] = 0.0
 magFldCnt_Corr.arYc[0] = 0.0
+magFldCnt_Corr.arZc[0] = UNDULATOR_ZCENTER
 
 
 # Number of reps of field
 magFldCnt_Corr.arMagFld[0].nRep = 1
 
-# Center in Z of ID
-magFldCnt_Corr.arZc[0] = 0.0
-
-
-
-
-
-
-
 
 # Get the electron trajectory
 #partTraj_Corr = GetElectronTrajectory(magFldCnt_Corr, UNDULATOR_ZSTART - 1.50, UNDULATOR_ZEND + 1.50)
 partTraj_Corr = GetElectronTrajectory(magFldCnt_Corr, -1, 1)
-
-
-
-
-
-
 
 # Get the Z Values for the plot
 ZValues_Corr = [float(x) * ((partTraj_Corr.ctEnd - partTraj_Corr.ctStart) / float(partTraj_Corr.np)) for x in range(0, partTraj_Corr.np)]
@@ -448,7 +430,6 @@ gElectronX_Corr.Write()
 gElectronY_Corr.Write()
 
 
-exit(0)
 
 
 [SpectrumDataX, SpectrumDataY] = GetUndulatorSpectrum(magFldCnt_Data)
