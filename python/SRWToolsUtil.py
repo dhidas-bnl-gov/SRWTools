@@ -4,7 +4,8 @@ sys.path.append('/home/dhidas/SRW/env/work/srw_python')
 sys.path.append('/Users/dhidas/SRW/env/work/srw_python')
 from srwlib import *
 
-from ROOT import TFile, TTree, TGraph, TCanvas, TF1
+import ROOT.Double
+from ROOT import TFile, TTree, TGraph, TCanvas, TF1, TSpectrum, TMarker
 
 
 def ReadHallProbeData (InFileName, ZMin = -999, ZMax = 999):
@@ -279,3 +280,46 @@ def FindMinMaxFromFit (MaxListInd, Z, By):
       MaxBy.append(-FitFunction.GetMaximum())
 
   return [MaxByZ, MaxBy]
+
+
+
+
+def FindPeaksInHistogram (Hist, Width):
+  "Find peaks in spectrum using TSpectrum.  This scans entire histogram in specified window width"
+
+  HistMin = Hist.GetXaxis().GetMinimum()
+  HistMax = Hist.GetXaxis().GetMaximum()
+
+  NScans = 2 * (HistMax - HistMin) / Width
+  StepSize = Width / 2
+
+  Peaks = dict()
+
+  for i in range(NScans):
+    Start = HistMin + i * StepSize
+    Stop  = Start + Width
+
+    TSpectrum s(50, 1)
+    s.Search(Hist)
+
+    N = s.GetNPeaks()
+
+    PeaksX = s.GetPositionX()
+    PeaksY = s.GetPositionY()
+
+    for j in range(N):
+      Peaks[PeaksX[j]] = PeaksY[j]
+
+
+  TCanvas c
+  c.cd()
+  Hist.Draw("hist")
+
+  for peak in Peaks:
+    print 'peak found at ', peak
+    m = TMarker(peak, Peaks[peak])
+    m.Draw("same")
+
+  c.SaveAs('test.pdf')
+
+  return Peaks
