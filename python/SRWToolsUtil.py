@@ -4,8 +4,8 @@ sys.path.append('/home/dhidas/SRW/env/work/srw_python')
 sys.path.append('/Users/dhidas/SRW/env/work/srw_python')
 from srwlib import *
 
-import ROOT.Double
-from ROOT import TFile, TTree, TGraph, TCanvas, TF1, TSpectrum, TMarker
+import ROOT
+from ROOT import TFile, TTree, TGraph, TCanvas, TF1, TSpectrum, TMarker, TH1F
 
 
 def ReadHallProbeData (InFileName, ZMin = -999, ZMax = 999):
@@ -284,13 +284,13 @@ def FindMinMaxFromFit (MaxListInd, Z, By):
 
 
 
-def FindPeaksInHistogram (Hist, Width):
+def FindPeaksInHistogram (Hist, Width = 5000, MinimumSeparation = 500):
   "Find peaks in spectrum using TSpectrum.  This scans entire histogram in specified window width"
 
-  HistMin = Hist.GetXaxis().GetMinimum()
-  HistMax = Hist.GetXaxis().GetMaximum()
+  HistMin = Hist.GetXaxis().GetXmin()
+  HistMax = Hist.GetXaxis().GetXmax()
 
-  NScans = 2 * (HistMax - HistMin) / Width
+  NScans = int(2 * (HistMax - HistMin) / Width)
   StepSize = Width / 2
 
   Peaks = dict()
@@ -298,8 +298,9 @@ def FindPeaksInHistogram (Hist, Width):
   for i in range(NScans):
     Start = HistMin + i * StepSize
     Stop  = Start + Width
+    Hist.GetXaxis().SetRangeUser(Start, Stop)
 
-    TSpectrum s(50, 1)
+    s = TSpectrum (50)
     s.Search(Hist)
 
     N = s.GetNPeaks()
@@ -307,19 +308,53 @@ def FindPeaksInHistogram (Hist, Width):
     PeaksX = s.GetPositionX()
     PeaksY = s.GetPositionY()
 
+    print 'Range', Start, Stop, N
+
     for j in range(N):
-      Peaks[PeaksX[j]] = PeaksY[j]
+      AddThisPeak = True
+      for key in Peaks:
+        if abs(PeaksX[j] - key) < MinimumSeparation:
+          AddThisPeak = False
+          break
+
+      if AddThisPeak:
+        Peaks[PeaksX[j]] = PeaksY[j]
 
 
-  TCanvas c
+  Hist.GetXaxis().SetRangeUser(HistMin, HistMax)
+
+  c = TCanvas()
   c.cd()
   Hist.Draw("hist")
 
+  Markers = []
   for peak in Peaks:
-    print 'peak found at ', peak
-    m = TMarker(peak, Peaks[peak])
-    m.Draw("same")
+    print 'peak found at ', peak, Peaks[peak]
+    Markers.append(TMarker(peak, Peaks[peak], 26))
+    Markers[-1].Draw('same')
 
+  c.SetLogy(1)
   c.SaveAs('test.pdf')
 
+  print 'Integral', Hist.Integral() * 1.602 * 1E-19
+
   return Peaks
+
+
+
+def TGraphToTH1F (g):
+  "Make a TH1F from a TGraph.  Be careful when using this.  You cannot convert all grapsh to histograms."
+
+  x = ROOT.Double()
+  y = ROOT.Double()
+  g.GetPoint(g.GetN()-1, x, y)
+
+  Name = g.GetName()
+  Name = Name + '_h'
+  h = TH1F(Name, Name, g.GetN(), 0, x)
+
+  for i in range(g.GetN()):
+    g.GetPoint(i, x, y)
+    h.SetBinContent(i+1, y)
+
+  return h
