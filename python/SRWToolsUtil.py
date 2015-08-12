@@ -158,14 +158,14 @@ def GetUndulatorSpectrum (magFldCnt):
 
   # For spectrum vs photon energy
   wfr1 = SRWLWfr()
-  wfr1.allocate(10000, 1, 1)
+  wfr1.allocate(20000, 1, 1)
   wfr1.mesh.zStart = 20.
   wfr1.mesh.eStart = 10.
-  wfr1.mesh.eFin = 50000.
-  wfr1.mesh.xStart = -0.001
-  wfr1.mesh.xFin = 0.001
-  wfr1.mesh.yStart = -0.001
-  wfr1.mesh.yFin = 0.001
+  wfr1.mesh.eFin = 70000.
+  wfr1.mesh.xStart = 0.0
+  wfr1.mesh.xFin = 0.0
+  wfr1.mesh.yStart = -0.0
+  wfr1.mesh.yFin = 0.0
   wfr1.partBeam = elecBeam
 
 
@@ -301,7 +301,7 @@ def FindPeaksInHistogram (Hist, Width = 5000, MinimumSeparation = 500):
     Hist.GetXaxis().SetRangeUser(Start, Stop)
 
     s = TSpectrum (50)
-    s.Search(Hist)
+    s.Search(Hist, 2, '', 0.35)
 
     N = s.GetNPeaks()
 
@@ -334,7 +334,7 @@ def FindPeaksInHistogram (Hist, Width = 5000, MinimumSeparation = 500):
     Markers[-1].Draw('same')
 
   c.SetLogy(1)
-  c.SaveAs('test.pdf')
+  c.SaveAs(Hist.GetName() + '.pdf')
 
   print 'Integral', Hist.Integral() * 1.602 * 1E-19
 
@@ -351,7 +351,9 @@ def TGraphToTH1F (g):
 
   Name = g.GetName()
   Name = Name + '_h'
-  h = TH1F(Name, Name, g.GetN(), 0, x)
+  h = TH1F(Name, g.GetTitle(), g.GetN(), 0, x)
+  h.SetXTitle(g.GetXaxis().GetTitle())
+  h.SetYTitle(g.GetYaxis().GetTitle())
 
   for i in range(g.GetN()):
     g.GetPoint(i, x, y)

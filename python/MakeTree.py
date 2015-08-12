@@ -5,6 +5,28 @@ from array import array
 import sys
 from SRWToolsUtil import *
 
+
+
+
+def AddToField (X, B, s0, sigma, intgr) :
+  "Add gaussian to field"
+
+  for i in range(len(X)):
+    B[i] += sRGssn( X[i], s0, sigma, intgr )
+
+def sRGssn(s, s0, sigma, intgr):
+  "gaussian"
+
+  t=(s-s0)/sigma
+  return (intgr*0.3989422804/sigma)*exp(-0.5*t*t)
+
+
+
+
+
+
+
+
 from ROOT import TLine
 
 # Input and output files are given on command line
@@ -288,8 +310,8 @@ gElectronY_Ideal.Write()
 [SpectrumIdealX, SpectrumIdealY] = GetUndulatorSpectrum(magFldCnt_Ideal)
 gSpectrumIdeal = TGraph( len(SpectrumIdealX), array('d', SpectrumIdealX), array('d', SpectrumIdealY) )
 gSpectrumIdeal.SetName('Spectrum_Ideal')
-gSpectrumIdeal.SetTitle('Simulated B-field Spectrum')
-gSpectrumIdeal.GetXaxis().SetTitle('Energy [eV]')
+gSpectrumIdeal.SetTitle('Simulated Spectrum')
+gSpectrumIdeal.GetXaxis().SetTitle('Photon Energy [eV]')
 gSpectrumIdeal.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
 gSpectrumIdeal.Write()
 
@@ -303,6 +325,8 @@ def dimdelta (X) :
   return (X[-1] - X[0]) / N
 
 
+# This is only here to test
+#AddToField(Z, By, UNDULATOR_ZCENTER, 1.2, -0.00001)
 
 
 # Field integrals
@@ -345,18 +369,6 @@ KickExitVertical    = -0.5 * (sRangeX / DistanceBetweenKicks + 1) * auxI1X + aux
 
 print 'DistanceBetweenKicks: ', DistanceBetweenKicks
 print 'Kick EnH ExH EnV ExV: ', KickEntryHorizontal, KickExitHorizontal, KickEntryVertical, KickExitVertical
-
-def AddToField (X, B, s0, sigma, intgr) :
-  "Add gaussian to field"
-
-  for i in range(len(X)):
-    B[i] += sRGssn( X[i], s0, sigma, intgr )
-
-def sRGssn(s, s0, sigma, intgr):
-  "gaussian"
-
-  t=(s-s0)/sigma
-  return (intgr*0.3989422804/sigma)*exp(-0.5*t*t)
 
 
 HalfDistBwKicks = 0.5 * DistanceBetweenKicks
@@ -431,12 +443,11 @@ gElectronY_Corr.Write()
 
 
 
-
 [SpectrumDataX, SpectrumDataY] = GetUndulatorSpectrum(magFldCnt_Data)
 gSpectrumData = TGraph( len(SpectrumDataX), array('d', SpectrumDataX), array('d', SpectrumDataY) )
 gSpectrumData.SetName('Spectrum_Data')
-gSpectrumData.SetTitle('Simulated B-field Spectrum from Field Measurements')
-gSpectrumData.GetXaxis().SetTitle('Energy [eV]')
+gSpectrumData.SetTitle('Simulated Spectrum from Field Measurements')
+gSpectrumData.GetXaxis().SetTitle('Photon Energy [eV]')
 gSpectrumData.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
 gSpectrumData.Write()
 
@@ -444,10 +455,26 @@ gSpectrumData.Write()
 [SpectrumCorrX, SpectrumCorrY] = GetUndulatorSpectrum(magFldCnt_Corr)
 gSpectrumCorr = TGraph( len(SpectrumCorrX), array('d', SpectrumCorrX), array('d', SpectrumCorrY) )
 gSpectrumCorr.SetName('Spectrum_DataCorr')
-gSpectrumCorr.SetTitle('Simulated B-field Spectrum from Field Measurements')
-gSpectrumCorr.GetXaxis().SetTitle('Energy [eV]')
+gSpectrumCorr.SetTitle('Simulated Spectrum from Field Measurements')
+gSpectrumCorr.GetXaxis().SetTitle('Photon Energy [eV]')
 gSpectrumCorr.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
 gSpectrumCorr.Write()
+
+
+
+
+# Run peak finding on all spectra
+hSpectrumIdeal = TGraphToTH1F(gSpectrumIdeal)
+hSpectrumData = TGraphToTH1F(gSpectrumData)
+hSpectrumCorr = TGraphToTH1F(gSpectrumCorr)
+PeaksIdeal = FindPeaksInHistogram(hSpectrumIdeal)
+PeaksData = FindPeaksInHistogram(hSpectrumData)
+PeaksCorr = FindPeaksInHistogram(hSpectrumCorr)
+
+
+
+
+
 
 
 
