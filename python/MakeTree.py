@@ -5,29 +5,18 @@ from array import array
 import sys
 from SRWToolsUtil import *
 
-
-
-
-def AddToField (X, B, s0, sigma, intgr) :
-  "Add gaussian to field"
-
-  for i in range(len(X)):
-    B[i] += sRGssn( X[i], s0, sigma, intgr )
-
-def sRGssn(s, s0, sigma, intgr):
-  "gaussian"
-
-  t=(s-s0)/sigma
-  return (intgr*0.3989422804/sigma)*exp(-0.5*t*t)
-
-
-
-
-
-
-
-
+# extra root imports
 from ROOT import TLine
+
+
+
+
+
+
+
+
+
+
 
 # Input and output files are given on command line
 InFileName = sys.argv[1]
@@ -52,7 +41,7 @@ t.Branch('Bx', tBx, 'Bx')
 t.Branch('By', tBy, 'By')
 t.Branch('Bz', tBz, 'Bz')
 
-# Create arrays for program use
+# Create arrays for magnetic field.  These contain the field data for the entire input file
 Z  = array('d')
 Bx = array('d')
 By = array('d')
@@ -80,6 +69,7 @@ fi.close()
 [MaxListInd, MaxListBy] = FindMaxAndMins(Z, By)
 [MaxByZ, MaxBy] = FindMinMaxFromFit(MaxListInd, Z, By)
 
+
 # Save a graph of the points found
 gMaxBy = TGraph(len(MaxByZ), array('d', MaxByZ), array('d', MaxBy))
 gMaxBy.SetName('MaxBy')
@@ -87,6 +77,7 @@ gMaxBy.SetTitle('Calculated Max By')
 gMaxBy.GetXaxis().SetTitle('Position [m]')
 gMaxBy.GetYaxis().SetTitle('B_{Y} [T]')
 gMaxBy.Write()
+
 
 # TGraphs for measured Bx By and Bz vs Z
 gBx = TGraph( len(Z), Z, Bx )
@@ -101,7 +92,7 @@ gBx.SetName("Bx")
 gBy.SetTitle('Measured magnetic field B_{Y}')
 gBy.GetXaxis().SetTitle('Position [m]')
 gBy.GetYaxis().SetTitle('B_{Y} [T]')
-gBy.SetMarkerStyle(26)
+gBy.SetMarkerStyle(3)
 gBy.SetName("By")
 
 gBz.SetTitle('Measured magnetic field B_{Z}')
@@ -126,10 +117,10 @@ for i in range (6):
   MaxByZChopped.pop(0)
 
 # just save absolute value
-MaxByChopped = map(abs, MaxByChopped)
+MaxByChoppedAbs = map(abs, MaxByChopped)
 
 # For comparing the number of peaks found and taken off on the sides
-print 'MaxBy MaxByChopped:', len(MaxByChopped), len(MaxBy)
+print 'MaxByChopped MaxBy:', len(MaxByChopped), len(MaxBy)
 
 # Number of periods based on measured data
 NPERIODS = (len(MaxBy) - 4) / 2 
@@ -145,8 +136,8 @@ print 'Period length measured: ', PERIOD_LENGTH, '[m]'
 
 
 # Average max field
-AvgMaxBy = numpy.mean(MaxByChopped)
-StdMaxBy = numpy.std(MaxByChopped)
+AvgMaxBy = numpy.mean(MaxByChoppedAbs)
+StdMaxBy = numpy.std(MaxByChoppedAbs)
 print 'Max By Average: ', AvgMaxBy, ' +/- ', StdMaxBy, ' [T]'
 
 # Magnetic center point of undulator
@@ -192,18 +183,33 @@ cBzLines.Write()
 PEAK_BY = AvgMaxBy
 
 # Graph the distribution and fit a line while we're at it
-gMaxByChopped = TGraph(len(MaxByZChopped), array('d', MaxByZChopped), array('d', MaxByChopped))
-gMaxByChopped.SetName('MaxByChopped')
-gMaxByChopped.SetTitle('Calculated Max By')
-gMaxByChopped.GetXaxis().SetTitle('Position [m]')
-gMaxByChopped.GetYaxis().SetTitle('B_{Y} [T]')
+gMaxByChoppedAbs = TGraph(len(MaxByZChopped), array('d', MaxByZChopped), array('d', MaxByChoppedAbs))
+gMaxByChoppedAbs.SetName('MaxByChoppedAbs')
+gMaxByChoppedAbs.SetTitle('Calculated Max By')
+gMaxByChoppedAbs.GetXaxis().SetTitle('Position [m]')
+gMaxByChoppedAbs.GetYaxis().SetTitle('B_{Y} [T]')
 fline = TF1('fline', 'pol1', -3000, 3000)
-gMaxByChopped.Fit(fline, 'q')
-gMaxByChopped.SetMarkerStyle(32)
-gMaxByChopped.Write()
+gMaxByChoppedAbs.Fit(fline, 'q')
+gMaxByChoppedAbs.SetMarkerStyle(32)
+gMaxByChoppedAbs.Write()
 print 'Max By linear fit parameters [0]+[1]x::', fline.GetParameter(0), fline.GetParameter(1)
 
 
+# Look at the pos vs neg peaks
+cMax  = []
+cMaxZ = []
+cMin  = []
+cMinZ = []
+for i in range( len(MaxByChopped) ):
+  x = MaxByChopped[i]
+  if x >= 0:
+    cMax.append(x)
+    cMaxZ.append( MaxByZChopped[i] )
+  else:
+    cMin.append(x)
+    cMinZ.append( MaxByZChopped[i] )
+
+print cMin
 
 
 
@@ -232,7 +238,7 @@ magFldCnt_Data.arZc[0] = UNDULATOR_ZCENTER
 magFldCnt_Data.arMagFld[0].nRep = 1
 
 # Get the electron trajectory
-partTraj = GetElectronTrajectory(magFldCnt_Data, -1, 1)
+partTraj = GetElectronTrajectory(magFldCnt_Data, UNDULATOR_ZSTART, UNDULATOR_ZEND)
 
 # Get the Z Values for the plot
 ZValues = [float(x) * ((partTraj.ctEnd - partTraj.ctStart) / float(partTraj.np)) for x in range(0, partTraj.np)]
@@ -467,13 +473,25 @@ gSpectrumCorr.Write()
 hSpectrumIdeal = TGraphToTH1F(gSpectrumIdeal)
 hSpectrumData = TGraphToTH1F(gSpectrumData)
 hSpectrumCorr = TGraphToTH1F(gSpectrumCorr)
-PeaksIdeal = FindPeaksInHistogram(hSpectrumIdeal)
-PeaksData = FindPeaksInHistogram(hSpectrumData)
+#PeaksIdeal = FindPeaksInHistogram(hSpectrumIdeal)
+#PeaksData = FindPeaksInHistogram(hSpectrumData)
 PeaksCorr = FindPeaksInHistogram(hSpectrumCorr)
 
 
 
+PeaksIdealSorted = []
+PeaksDataSorted = []
+PeaksCorrSorted = []
+#for peak in PeaksIdeal:
+#  PeaksIdealSorted.append(peak)
+#for peak in PeaksData:
+#  PeaksDataSorted.append(peak)
+for peak in PeaksCorr:
+  PeaksCorrSorted.append(peak)
+# Now do sorting for all three
 
+for p in PeaksCorrSorted:
+  print p
 
 
 

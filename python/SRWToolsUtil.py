@@ -5,7 +5,21 @@ sys.path.append('/Users/dhidas/SRW/env/work/srw_python')
 from srwlib import *
 
 import ROOT
-from ROOT import TFile, TTree, TGraph, TCanvas, TF1, TSpectrum, TMarker, TH1F
+from ROOT import TFile, TTree, TGraph, TCanvas, TF1, TSpectrum, TMarker, TH1F, TMath
+
+
+
+
+def AddToField (X, B, S0, Sigma, Integral) :
+  "Add gaussian to field"
+
+  for i in range(len(X)):
+    B[i] += Integral*TMath.Gaus( X[i], S0, Sigma, True)
+
+
+
+
+
 
 
 def ReadHallProbeData (InFileName, ZMin = -999, ZMax = 999):
@@ -336,7 +350,7 @@ def FindPeaksInHistogram (Hist, Width = 5000, MinimumSeparation = 500):
   c.SetLogy(1)
   c.SaveAs(Hist.GetName() + '.pdf')
 
-  print 'Integral', Hist.Integral() * 1.602 * 1E-19
+  print 'Integral', Hist.Integral() * 1.602E-19
 
   return Peaks
 
