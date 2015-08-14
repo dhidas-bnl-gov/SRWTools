@@ -298,23 +298,44 @@ def FindMinMaxFromFit (MaxListInd, Z, By):
 
 
 
-def FindPeaksInHistogram (Hist, Width = 5000, MinimumSeparation = 500):
+def FindPeaksInHistogram (Hist, MinimumSeparation = 500):
   "Find peaks in spectrum using TSpectrum.  This scans entire histogram in specified window width"
 
   HistMin = Hist.GetXaxis().GetXmin()
   HistMax = Hist.GetXaxis().GetXmax()
 
+
+  # Get 2 most prom peaks to set the width
+  s = TSpectrum(50)
+  s.Search(Hist)
+  if (s.GetNPeaks() <= 1):
+    print 'ERROR: did not find 2 peaks in setting width'
+    return
+
+
+  PeaksX = s.GetPositionX()
+  lowestX = PeaksX[0]
+  for i in range( len(PeaksX) ):
+    x = PeaksX[i]
+    if x < lowestX:
+      lowestX = x
+      lowestI = i
+  Width = 3.0 * PeaksX[i] * 1.2
+  print 'For width using peak and witdh: ', Width, PeaksX[0]
+  exit(0)
+
   NScans = int(2 * (HistMax - HistMin) / Width)
   StepSize = Width / 2
 
   Peaks = dict()
+  PeaksArray = []
 
   for i in range(NScans):
     Start = HistMin + i * StepSize
     Stop  = Start + Width
     Hist.GetXaxis().SetRangeUser(Start, Stop)
 
-    s = TSpectrum (50)
+    s = TSpectrum (2)
     s.Search(Hist, 2, '', 0.35)
 
     N = s.GetNPeaks()
@@ -333,11 +354,45 @@ def FindPeaksInHistogram (Hist, Width = 5000, MinimumSeparation = 500):
 
       if AddThisPeak:
         Peaks[PeaksX[j]] = PeaksY[j]
+        PeaksArray.append(PeaksX[j])
 
 
+  # Set range back to starting point
   Hist.GetXaxis().SetRangeUser(HistMin, HistMax)
 
-  c = TCanvas()
+  # Peaks array needs to be sorted
+  PeaksArray.sort()
+
+
+  # If there are zero or 1 peaks return
+  if ( len(Peaks.keys()) <= 1 ):
+    return Peaks
+
+
+  # Take peaks only from odd harmonics using first two points as reference
+  FirstDiff = PeaksArray[1] - PeaksArray[0]
+
+  OddPeaksArray = [PeaksArray[0]]
+  for i in range( 1, len(PeaksArray) ):
+    if (abs(PeaksArray[i] - OddPeaksArray[-1] - FirstDiff) < 0.10 * FirstDiff):
+      OddPeaksArray.append(PeaksArray[i])
+
+  # Get a dict with only odd peaks
+  OddPeaks = dict()
+  for peak in OddPeaksArray:
+    OddPeaks[peak] = Peaks[peak]
+
+
+  print 'Integral', Hist.Integral() * 1.602E-19
+
+  return OddPeaks
+
+
+
+def GetCanvasWithHistAndPeakMarkers (Hist, Peaks, Name):
+  "Take the histogram and peaks to make a nice plot"
+
+  c = TCanvas(Name, Name)
   c.cd()
   Hist.Draw("hist")
 
@@ -348,11 +403,11 @@ def FindPeaksInHistogram (Hist, Width = 5000, MinimumSeparation = 500):
     Markers[-1].Draw('same')
 
   c.SetLogy(1)
-  c.SaveAs(Hist.GetName() + '.pdf')
+  c.SaveAs(Name + '.pdf')
 
-  print 'Integral', Hist.Integral() * 1.602E-19
+  return c
 
-  return Peaks
+
 
 
 

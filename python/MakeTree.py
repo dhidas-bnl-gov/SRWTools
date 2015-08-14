@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import numpy
 from array import array
 import sys
@@ -20,11 +21,15 @@ from ROOT import TLine
 
 # Input and output files are given on command line
 InFileName = sys.argv[1]
-OutFileName = sys.argv[2]
+
+BaseFileName = os.path.splitext(os.path.basename(InFileName))[0]
 
 # Open the input and output files.  Output file is ROOT format
 fi = open(InFileName, 'r')
-fo = TFile(OutFileName, 'recreate')
+fROOT = TFile(BaseFileName + '.root', 'recreate')
+fPEAKS_Ideal = open(BaseFileName + '.peaks.Ideal.dat', 'w')
+fPEAKS_Data = open(BaseFileName + '.peaks.Data.dat', 'w')
+fPEAKS_Corr = open(BaseFileName + '.peaks.Corr.dat', 'w')
 
 # Create a TTree for data 
 t  = TTree('mmlabdata', 'mmlabdata')
@@ -54,7 +59,7 @@ for l in fi:
 
   # Make in SI unites and fill the Tree
   tZ[0] /= 1000.
-  t.Fill()
+  #t.Fill()
 
   # Fill program use arrays with data
   Z.append(tZ[0])
@@ -473,29 +478,44 @@ gSpectrumCorr.Write()
 hSpectrumIdeal = TGraphToTH1F(gSpectrumIdeal)
 hSpectrumData = TGraphToTH1F(gSpectrumData)
 hSpectrumCorr = TGraphToTH1F(gSpectrumCorr)
-#PeaksIdeal = FindPeaksInHistogram(hSpectrumIdeal)
+PeaksIdeal = FindPeaksInHistogram(hSpectrumIdeal)
 #PeaksData = FindPeaksInHistogram(hSpectrumData)
 PeaksCorr = FindPeaksInHistogram(hSpectrumCorr)
 
+# Show the peaks on the histogram plot
+GetCanvasWithHistAndPeakMarkers(hSpectrumIdeal, PeaksIdeal, BaseFileName + '_Spectrum_Ideal' ).Write()
+GetCanvasWithHistAndPeakMarkers(hSpectrumCorr, PeaksCorr,BaseFileName + '_Spectrum_Corr' ).Write()
 
 
 PeaksIdealSorted = []
 PeaksDataSorted = []
 PeaksCorrSorted = []
-#for peak in PeaksIdeal:
-#  PeaksIdealSorted.append(peak)
+for peak in PeaksIdeal:
+  PeaksIdealSorted.append(peak)
 #for peak in PeaksData:
 #  PeaksDataSorted.append(peak)
 for peak in PeaksCorr:
   PeaksCorrSorted.append(peak)
+for peak in PeaksIdeal:
+  PeaksIdealSorted.append(peak)
+
 # Now do sorting for all three
+PeaksCorrSorted.sort()
+PeaksIdealSorted.sort()
 
 for p in PeaksCorrSorted:
-  print p
+  fPEAKS_Corr.write('%8.1f  %.6E\n' % (p, PeaksCorr[p]))
+for p in PeaksIdealSorted:
+  fPEAKS_Ideal.write('%8.1f  %.6E\n' % (p, PeaksIdeal[p]))
+
+
+
+fPEAKS_Corr.close()
 
 
 
 
-fo.Write()
-fo.Close()
+
+fROOT.Write()
+fROOT.Close()
 
