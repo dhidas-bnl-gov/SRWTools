@@ -214,7 +214,6 @@ for i in range( len(MaxByChopped) ):
     cMin.append(x)
     cMinZ.append( MaxByZChopped[i] )
 
-print cMin
 
 
 
@@ -478,13 +477,17 @@ gSpectrumCorr.Write()
 hSpectrumIdeal = TGraphToTH1F(gSpectrumIdeal)
 hSpectrumData = TGraphToTH1F(gSpectrumData)
 hSpectrumCorr = TGraphToTH1F(gSpectrumCorr)
+hSpectrumIdeal.Write()
+hSpectrumData.Write()
+hSpectrumCorr.Write()
 PeaksIdeal = FindPeaksInHistogram(hSpectrumIdeal)
-#PeaksData = FindPeaksInHistogram(hSpectrumData)
+PeaksData = FindPeaksInHistogram(hSpectrumData)
 PeaksCorr = FindPeaksInHistogram(hSpectrumCorr)
 
 # Show the peaks on the histogram plot
 GetCanvasWithHistAndPeakMarkers(hSpectrumIdeal, PeaksIdeal, BaseFileName + '_Spectrum_Ideal' ).Write()
 GetCanvasWithHistAndPeakMarkers(hSpectrumCorr, PeaksCorr,BaseFileName + '_Spectrum_Corr' ).Write()
+GetCanvasWithHistAndPeakMarkers(hSpectrumData, PeaksData,BaseFileName + '_Spectrum_Data' ).Write()
 
 
 PeaksIdealSorted = []
@@ -492,8 +495,8 @@ PeaksDataSorted = []
 PeaksCorrSorted = []
 for peak in PeaksIdeal:
   PeaksIdealSorted.append(peak)
-#for peak in PeaksData:
-#  PeaksDataSorted.append(peak)
+for peak in PeaksData:
+  PeaksDataSorted.append(peak)
 for peak in PeaksCorr:
   PeaksCorrSorted.append(peak)
 for peak in PeaksIdeal:
@@ -501,16 +504,21 @@ for peak in PeaksIdeal:
 
 # Now do sorting for all three
 PeaksCorrSorted.sort()
+PeaksDataSorted.sort()
 PeaksIdealSorted.sort()
 
 for p in PeaksCorrSorted:
   fPEAKS_Corr.write('%8.1f  %.6E\n' % (p, PeaksCorr[p]))
+for p in PeaksDataSorted:
+  fPEAKS_Data.write('%8.1f  %.6E\n' % (p, PeaksData[p]))
 for p in PeaksIdealSorted:
   fPEAKS_Ideal.write('%8.1f  %.6E\n' % (p, PeaksIdeal[p]))
 
 
 
 fPEAKS_Corr.close()
+fPEAKS_Data.close()
+fPEAKS_Ideal.close()
 
 
 

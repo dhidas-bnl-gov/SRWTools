@@ -306,23 +306,24 @@ def FindPeaksInHistogram (Hist, MinimumSeparation = 500):
 
 
   # Get 2 most prom peaks to set the width
-  s = TSpectrum(50)
-  s.Search(Hist)
-  if (s.GetNPeaks() <= 1):
-    print 'ERROR: did not find 2 peaks in setting width'
+  s = TSpectrum(20)
+  s.Search(Hist, 10, '', 0.05)
+  if (s.GetNPeaks() < 1):
+    print 'ERROR: did not find 1 peak in setting width'
     return
 
+  print 'Found initial peaks for', Hist.GetName(), s.GetNPeaks()
 
   PeaksX = s.GetPositionX()
   lowestX = PeaksX[0]
-  for i in range( len(PeaksX) ):
+  lowestI = 0
+  for i in range( s.GetNPeaks() ):
     x = PeaksX[i]
     if x < lowestX:
       lowestX = x
       lowestI = i
-  Width = 3.0 * PeaksX[i] * 1.2
-  print 'For width using peak and witdh: ', Width, PeaksX[0]
-  exit(0)
+  Width = 2.0 * PeaksX[lowestI] * 0.9
+  print 'For width using peak and witdh: ', PeaksX[lowestI], Width
 
   NScans = int(2 * (HistMax - HistMin) / Width)
   StepSize = Width / 2
@@ -335,7 +336,7 @@ def FindPeaksInHistogram (Hist, MinimumSeparation = 500):
     Stop  = Start + Width
     Hist.GetXaxis().SetRangeUser(Start, Stop)
 
-    s = TSpectrum (2)
+    s = TSpectrum (5)
     s.Search(Hist, 2, '', 0.35)
 
     N = s.GetNPeaks()
