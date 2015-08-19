@@ -159,7 +159,10 @@ def GetElectronTrajectory (magFldCnt, ZStart, ZEnd):
 
 
 
-def GetUndulatorSpectrum (magFldCnt):
+
+
+
+def GetUndulatorSpectrumStokes (magFldCnt):
   "Get the spectrum given und"
 
   # Electron Beam
@@ -180,6 +183,63 @@ def GetUndulatorSpectrum (magFldCnt):
   wfr1.mesh.xFin = 0.0
   wfr1.mesh.yStart = -0.0
   wfr1.mesh.yFin = 0.0
+  wfr1.partBeam = elecBeam
+
+
+
+  # Precision
+  meth = 1
+  relPrec = 0.01
+  zStartInteg = 0
+  zEndInteg = 0
+  npTraj = 20000
+  useTermin = 1
+  sampFactNxNyForProp = 0
+  arPrecPar = [meth, relPrec, zStartInteg, zEndInteg, npTraj, useTermin, sampFactNxNyForProp]
+
+  # Calculation (SRWLIB function calls)
+  srwl.CalcElecFieldSR(wfr1, 0, magFldCnt, arPrecPar)
+  arI1 = array('f', [0]*wfr1.mesh.ne)
+  srwl.CalcIntFromElecField(arI1, wfr1, 6, 0, 0, wfr1.mesh.eStart, wfr1.mesh.xStart, wfr1.mesh.yStart)
+
+  # Get X-values for plotting
+  XValues = [(wfr1.mesh.eStart + float(x) * (wfr1.mesh.eFin - wfr1.mesh.eStart) / wfr1.mesh.ne) for x in range(wfr1.mesh.ne)]
+
+  return [XValues, arI1]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def GetUndulatorSpectrum (magFldCnt, elecBeam):
+  "Get the spectrum given und"
+
+
+  # For spectrum vs photon energy
+  wfr1 = SRWLWfr()
+  wfr1.allocate(20000, 1, 1)
+  wfr1.mesh.zStart = 20.
+  wfr1.mesh.eStart = 10.
+  wfr1.mesh.eFin = 70000.
+  wfr1.mesh.xStart = -0.000001
+  wfr1.mesh.xFin = 0.000001
+  wfr1.mesh.yStart = -0.000001
+  wfr1.mesh.yFin = 0.000001
   wfr1.partBeam = elecBeam
 
 

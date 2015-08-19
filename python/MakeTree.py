@@ -287,8 +287,54 @@ ycID = 0
 zcID = UNDULATOR_ZCENTER
 
 
+# Define electron beam
+elecBeam = srwl_uti_src_e_beam('NSLS-II Low Beta Final')
+elecBeam.partStatMom1.x = 0.
+elecBeam.partStatMom1.y = 0.
+elecBeam.partStatMom1.z = -0.5 * PERIOD_LENGTH * (NPERIODS + 4)
+elecBeam.partStatMom1.xp = 0
+elecBeam.partStatMom1.yp = 0
+
+
+# Get undulator and Ideal magnetic field based off of average peak By field
 und = SRWLMagFldU([SRWLMagFldH(1, 'v', undBy, phBy, sBy, 1), SRWLMagFldH(1, 'h', undBx, phBx, sBx, 1)], undPer, numPer)
 magFldCnt_Ideal = SRWLMagFldC([und], array('d', [xcID]), array('d', [ycID]), array('d', [zcID])) #Container of all Field Elements
+
+
+stkF = SRWLStokes() #for spectral flux vs photon energy
+stkF.allocate(10000, 1, 1) #numbers of points vs photon energy, horizontal and vertical positions
+stkF.mesh.zStart = 30. #longitudinal position [m] at which UR has to be calculated
+stkF.mesh.eStart = 10. #initial photon energy [eV]
+stkF.mesh.eFin = 60000. #final photon energy [eV]
+stkF.mesh.xStart = -0.0015 #initial horizontal position [m]
+stkF.mesh.xFin = 0.0015 #final horizontal position [m]
+stkF.mesh.yStart = -0.00075 #initial vertical position [m]
+stkF.mesh.yFin = 0.00075 #final vertical position [m]
+
+
+
+#***********Precision Parameters
+arPrecF = [0]*5 #for spectral flux vs photon energy
+arPrecF[0] = 1 #initial UR harmonic to take into account
+arPrecF[1] = 21 #final UR harmonic to take into account
+arPrecF[2] = 1.5 #longitudinal integration precision parameter
+arPrecF[3] = 1.5 #azimuthal integration precision parameter
+arPrecF[4] = 1 #calculate flux (1) or flux per unit surface (2)
+
+#*********************Calculation (SRWLIB function calls)
+print('   Performing Spectral Flux (Stokes parameters) calculation ... ')
+srwl.CalcStokesUR(stkF, elecBeam, und, arPrecF)
+print('done')
+ZValues = [(stkF.mesh.eStart + float(x) * (stkF.mesh.eFin - stkF.mesh.eStart) / stkF.mesh.ne) for x in range(stkF.mesh.ne)]
+YValues = stkF.arS[10000:20000]
+print YValues
+gStokes = TGraph( len(ZValues), array('d', ZValues), array('d', YValues))
+gStokes.SetName("Stokes")
+gStokes.Write()
+exit(0)
+
+
+
 
 # Get the electron trajectory
 partTraj_Ideal = GetElectronTrajectory(magFldCnt_Ideal, -1, 1)
@@ -317,7 +363,7 @@ gElectronY_Ideal.Write()
 
 
 
-[SpectrumIdealX, SpectrumIdealY] = GetUndulatorSpectrum(magFldCnt_Ideal)
+[SpectrumIdealX, SpectrumIdealY] = GetUndulatorSpectrum(magFldCnt_Ideal, elecBeam)
 gSpectrumIdeal = TGraph( len(SpectrumIdealX), array('d', SpectrumIdealX), array('d', SpectrumIdealY) )
 gSpectrumIdeal.SetName('Spectrum_Ideal')
 gSpectrumIdeal.SetTitle('Simulated Spectrum')
@@ -325,6 +371,7 @@ gSpectrumIdeal.GetXaxis().SetTitle('Photon Energy [eV]')
 gSpectrumIdeal.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
 gSpectrumIdeal.Write()
 
+exit(0)
 
 
 
@@ -453,7 +500,7 @@ gElectronY_Corr.Write()
 
 
 
-[SpectrumDataX, SpectrumDataY] = GetUndulatorSpectrum(magFldCnt_Data)
+[SpectrumDataX, SpectrumDataY] = GetUndulatorSpectrum(magFldCnt_Data, elecBeam)
 gSpectrumData = TGraph( len(SpectrumDataX), array('d', SpectrumDataX), array('d', SpectrumDataY) )
 gSpectrumData.SetName('Spectrum_Data')
 gSpectrumData.SetTitle('Simulated Spectrum from Field Measurements')
@@ -462,7 +509,7 @@ gSpectrumData.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
 gSpectrumData.Write()
 
 
-[SpectrumCorrX, SpectrumCorrY] = GetUndulatorSpectrum(magFldCnt_Corr)
+[SpectrumCorrX, SpectrumCorrY] = GetUndulatorSpectrum(magFldCnt_Corr, elecBeam)
 gSpectrumCorr = TGraph( len(SpectrumCorrX), array('d', SpectrumCorrX), array('d', SpectrumCorrY) )
 gSpectrumCorr.SetName('Spectrum_DataCorr')
 gSpectrumCorr.SetTitle('Simulated Spectrum from Field Measurements')
