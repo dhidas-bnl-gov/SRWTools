@@ -331,7 +331,6 @@ print YValues
 gStokes = TGraph( len(ZValues), array('d', ZValues), array('d', YValues))
 gStokes.SetName("Stokes")
 gStokes.Write()
-exit(0)
 
 
 
@@ -371,7 +370,6 @@ gSpectrumIdeal.GetXaxis().SetTitle('Photon Energy [eV]')
 gSpectrumIdeal.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
 gSpectrumIdeal.Write()
 
-exit(0)
 
 
 
@@ -566,6 +564,12 @@ for p in PeaksIdealSorted:
 fPEAKS_Corr.close()
 fPEAKS_Data.close()
 fPEAKS_Ideal.close()
+
+
+
+
+
+
 
 
 
