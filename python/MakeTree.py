@@ -4,11 +4,14 @@ import os
 import numpy
 from array import array
 import sys
+
+sys.argv.append('-b-')
+
 from SRWToolsUtil import *
+
 
 # extra root imports
 from ROOT import TLine
-
 
 
 
@@ -28,7 +31,7 @@ BaseFileName = os.path.splitext(os.path.basename(InFileName))[0]
 fi = open(InFileName, 'r')
 fROOT = TFile(BaseFileName + '.root', 'recreate')
 fPEAKS_Ideal = open(BaseFileName + '.peaks.Ideal.dat', 'w')
-fPEAKS_Data = open(BaseFileName + '.peaks.Data.dat', 'w')
+#fPEAKS_Data = open(BaseFileName + '.peaks.Data.dat', 'w')
 fPEAKS_Corr = open(BaseFileName + '.peaks.Corr.dat', 'w')
 
 # Create a TTree for data 
@@ -296,6 +299,9 @@ elecBeam.partStatMom1.xp = 0
 elecBeam.partStatMom1.yp = 0
 
 
+
+
+
 # Get undulator and Ideal magnetic field based off of average peak By field
 und = SRWLMagFldU([SRWLMagFldH(1, 'v', undBy, phBy, sBy, 1), SRWLMagFldH(1, 'h', undBx, phBx, sBx, 1)], undPer, numPer)
 magFldCnt_Ideal = SRWLMagFldC([und], array('d', [xcID]), array('d', [ycID]), array('d', [zcID])) #Container of all Field Elements
@@ -327,7 +333,6 @@ srwl.CalcStokesUR(stkF, elecBeam, und, arPrecF)
 print('done')
 ZValues = [(stkF.mesh.eStart + float(x) * (stkF.mesh.eFin - stkF.mesh.eStart) / stkF.mesh.ne) for x in range(stkF.mesh.ne)]
 YValues = stkF.arS[10000:20000]
-print YValues
 gStokes = TGraph( len(ZValues), array('d', ZValues), array('d', YValues))
 gStokes.SetName("Stokes")
 gStokes.Write()
@@ -498,13 +503,13 @@ gElectronY_Corr.Write()
 
 
 
-[SpectrumDataX, SpectrumDataY] = GetUndulatorSpectrum(magFldCnt_Data, elecBeam)
-gSpectrumData = TGraph( len(SpectrumDataX), array('d', SpectrumDataX), array('d', SpectrumDataY) )
-gSpectrumData.SetName('Spectrum_Data')
-gSpectrumData.SetTitle('Simulated Spectrum from Field Measurements')
-gSpectrumData.GetXaxis().SetTitle('Photon Energy [eV]')
-gSpectrumData.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
-gSpectrumData.Write()
+#[SpectrumDataX, SpectrumDataY] = GetUndulatorSpectrum(magFldCnt_Data, elecBeam)
+#gSpectrumData = TGraph( len(SpectrumDataX), array('d', SpectrumDataX), array('d', SpectrumDataY) )
+#gSpectrumData.SetName('Spectrum_Data')
+#gSpectrumData.SetTitle('Simulated Spectrum from Field Measurements')
+#gSpectrumData.GetXaxis().SetTitle('Photon Energy [eV]')
+#gSpectrumData.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
+#gSpectrumData.Write()
 
 
 [SpectrumCorrX, SpectrumCorrY] = GetUndulatorSpectrum(magFldCnt_Corr, elecBeam)
@@ -520,28 +525,28 @@ gSpectrumCorr.Write()
 
 # Run peak finding on all spectra
 hSpectrumIdeal = TGraphToTH1F(gSpectrumIdeal)
-hSpectrumData = TGraphToTH1F(gSpectrumData)
+#hSpectrumData = TGraphToTH1F(gSpectrumData)
 hSpectrumCorr = TGraphToTH1F(gSpectrumCorr)
 hSpectrumIdeal.Write()
-hSpectrumData.Write()
+#hSpectrumData.Write()
 hSpectrumCorr.Write()
 PeaksIdeal = FindPeaksInHistogram(hSpectrumIdeal)
-PeaksData = FindPeaksInHistogram(hSpectrumData)
+#PeaksData = FindPeaksInHistogram(hSpectrumData)
 PeaksCorr = FindPeaksInHistogram(hSpectrumCorr)
 
 # Show the peaks on the histogram plot
 GetCanvasWithHistAndPeakMarkers(hSpectrumIdeal, PeaksIdeal, BaseFileName + '_Spectrum_Ideal' ).Write()
 GetCanvasWithHistAndPeakMarkers(hSpectrumCorr, PeaksCorr,BaseFileName + '_Spectrum_Corr' ).Write()
-GetCanvasWithHistAndPeakMarkers(hSpectrumData, PeaksData,BaseFileName + '_Spectrum_Data' ).Write()
+#GetCanvasWithHistAndPeakMarkers(hSpectrumData, PeaksData,BaseFileName + '_Spectrum_Data' ).Write()
 
 
 PeaksIdealSorted = []
-PeaksDataSorted = []
+#PeaksDataSorted = []
 PeaksCorrSorted = []
 for peak in PeaksIdeal:
   PeaksIdealSorted.append(peak)
-for peak in PeaksData:
-  PeaksDataSorted.append(peak)
+#for peak in PeaksData:
+#  PeaksDataSorted.append(peak)
 for peak in PeaksCorr:
   PeaksCorrSorted.append(peak)
 for peak in PeaksIdeal:
@@ -549,20 +554,23 @@ for peak in PeaksIdeal:
 
 # Now do sorting for all three
 PeaksCorrSorted.sort()
-PeaksDataSorted.sort()
+#PeaksDataSorted.sort()
 PeaksIdealSorted.sort()
 
-for p in PeaksCorrSorted:
-  fPEAKS_Corr.write('%8.1f  %.6E\n' % (p, PeaksCorr[p]))
-for p in PeaksDataSorted:
-  fPEAKS_Data.write('%8.1f  %.6E\n' % (p, PeaksData[p]))
-for p in PeaksIdealSorted:
-  fPEAKS_Ideal.write('%8.1f  %.6E\n' % (p, PeaksIdeal[p]))
+for i in range( len(PeaksCorrSorted) ):
+  p = PeaksCorrSorted[i]
+  fPEAKS_Corr.write('%2i  %8.1f  %.6E\n' % (i, p, PeaksCorr[p]))
+#for i in range( len(PeaksDataSorted) ):
+#  p = PeaksDataSorted[i]
+#  fPEAKS_Data.write('%2i %8.1f  %.6E\n' % (i, p, PeaksData[p]))
+for i in range( len(PeaksIdealSorted) ):
+  p = PeaksIdealSorted[i]
+  fPEAKS_Ideal.write('%2i  %8.1f  %.6E\n' % (i, p, PeaksIdeal[p]))
 
 
 
 fPEAKS_Corr.close()
-fPEAKS_Data.close()
+#fPEAKS_Data.close()
 fPEAKS_Ideal.close()
 
 
