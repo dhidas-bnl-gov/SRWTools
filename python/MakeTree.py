@@ -528,7 +528,7 @@ hSpectrumIdeal = TGraphToTH1F(gSpectrumIdeal)
 #hSpectrumData = TGraphToTH1F(gSpectrumData)
 hSpectrumCorr = TGraphToTH1F(gSpectrumCorr)
 hSpectrumIdeal.Write()
-hSpectrumData.Write()
+#hSpectrumData.Write()
 hSpectrumCorr.Write()
 PeaksIdeal = FindPeaksInHistogram(hSpectrumIdeal)
 #PeaksData = FindPeaksInHistogram(hSpectrumData)
@@ -557,12 +557,15 @@ PeaksCorrSorted.sort()
 #PeaksDataSorted.sort()
 PeaksIdealSorted.sort()
 
-for p in PeaksCorrSorted:
-  fPEAKS_Corr.write('%8.1f  %.6E\n' % (p, PeaksCorr[p]))
-#for p in PeaksDataSorted:
-#  fPEAKS_Data.write('%8.1f  %.6E\n' % (p, PeaksData[p]))
-for p in PeaksIdealSorted:
-  fPEAKS_Ideal.write('%8.1f  %.6E\n' % (p, PeaksIdeal[p]))
+for i in range( len(PeaksCorrSorted) ):
+  p = PeaksCorrSorted[i]
+  fPEAKS_Corr.write('%2i  %8.1f  %.6E\n' % (i, p, PeaksCorr[p]))
+#for i in range( len(PeaksDataSorted) ):
+#  p = PeaksDataSorted[i]
+#  fPEAKS_Data.write('%2i %8.1f  %.6E\n' % (i, p, PeaksData[p]))
+for i in range( len(PeaksIdealSorted) ):
+  p = PeaksIdealSorted[i]
+  fPEAKS_Ideal.write('%2i  %8.1f  %.6E\n' % (i, p, PeaksIdeal[p]))
 
 
 
