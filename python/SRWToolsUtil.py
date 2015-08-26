@@ -322,7 +322,7 @@ def FindMaxAndMins (Z, By):
 
 
 
-def FindMinMaxFromFit (MaxListInd, Z, By):
+def FindMinMaxFromFit (MaxListInd, Z, By, fROOT = None):
   "Return the max B and Z locations from a fit"
 
   # Where is the calculated max By from the fit
@@ -346,7 +346,11 @@ def FindMinMaxFromFit (MaxListInd, Z, By):
     g.SetName('gFit' + str(i))
     FitFunction = TF1("FitFunction_"+str(i), "pol2", -4, 4)
     g.Fit(FitFunction, 'q')
-    g.Write()
+
+    # If the root file exists write the graphs
+    if (fROOT):
+      g.Write()
+
     MaxByZ.append(FitFunction.GetMaximumX())
     if By[i] >= 0:
       MaxBy.append(FitFunction.GetMaximum())
@@ -490,3 +494,30 @@ def TGraphToTH1F (g):
     h.SetBinContent(i+1, y)
 
   return h
+
+
+
+
+
+
+
+def AddToRunningAverages (Averages, N, Values):
+  "Take a list of running averages and add to it.  Understand the limitations of what you are doing if you are using this"
+
+  if N == 0:
+    for v in Values:
+      Averages.append(v)
+    return
+
+
+  if len(Averages) != len(Values):
+    raise ValueError('Length of arrays does not match')
+
+  for i in range( len(Averages) ):
+    V = Values[i]
+    A = Averages[i]
+
+    Averages[i] = A * (N / (N + 1)) + V / (N + 1)
+
+  return
+
