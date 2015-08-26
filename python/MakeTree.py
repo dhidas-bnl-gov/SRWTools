@@ -11,7 +11,7 @@ from SRWToolsUtil import *
 
 
 # extra root imports
-from ROOT import TLine
+from ROOT import TLine, TH2F
 
 
 
@@ -331,8 +331,8 @@ arPrecF[4] = 1 #calculate flux (1) or flux per unit surface (2)
 print('   Performing Spectral Flux (Stokes parameters) calculation ... ')
 srwl.CalcStokesUR(stkF, elecBeam, und, arPrecF)
 print('done')
-ZValues = [(stkF.mesh.eStart + float(x) * (stkF.mesh.eFin - stkF.mesh.eStart) / stkF.mesh.ne) for x in range(stkF.mesh.ne)]
-YValues = stkF.arS[10000:20000]
+ZValues = numpy.linspace(stkF.mesh.eStart, stkF.mesh.eFin, stkF.mesh.ne)
+YValues = stkF.arS[0:stkF.mesh.ne]
 gStokes = TGraph( len(ZValues), array('d', ZValues), array('d', YValues))
 gStokes.SetName("Stokes")
 gStokes.Write()
@@ -511,6 +511,39 @@ gElectronY_Corr.Write()
 #gSpectrumData.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
 #gSpectrumData.Write()
 
+stkP = SRWLStokes() #for power density
+stkP.allocate(1, 100, 100) #numbers of points vs horizontal and vertical positions (photon energy is not taken into account)
+stkP.mesh.zStart = 30. #longitudinal position [m] at which power density has to be calculated
+stkP.mesh.xStart = -0.02 #initial horizontal position [m]
+stkP.mesh.xFin = 0.02 #final horizontal position [m]
+stkP.mesh.yStart = -0.015 #initial vertical position [m]
+stkP.mesh.yFin = 0.015 #final vertical position [m]
+#stkP.mesh.eStart = 20000. #initial photon energy [eV]
+#stkP.mesh.eFin = 20001. #final photon energy [eV]
+
+arPrecP = [0]*5 #for power density
+arPrecP[0] = 1.5 #precision factor
+arPrecP[1] = 1 #power density computation method (1- "near field", 2- "far field")
+arPrecP[2] = 0 #initial longitudinal position (effective if arPrecP[2] < arPrecP[3])
+arPrecP[3] = 0 #final longitudinal position (effective if arPrecP[2] < arPrecP[3])
+arPrecP[4] = 20000 #number of points for (intermediate) trajectory calculation
+
+print 'Begin power density calculation'
+srwl.CalcPowDenSR(stkP, elecBeam, 0, magFldCnt_Corr, arPrecP)
+
+XValues = numpy.linspace(stkP.mesh.xStart, stkP.mesh.xFin, stkP.mesh.nx)
+YValues = numpy.linspace(stkP.mesh.yStart, stkP.mesh.yFin, stkP.mesh.ny)
+ZValues = numpy.array(stkP.arS[0:stkP.mesh.nx*stkP.mesh.ny]).reshape(stkP.mesh.ny, stkP.mesh.nx)
+hPower = TH2F("PowerDensity", "Power Density", len(XValues), stkP.mesh.xStart, stkP.mesh.xFin, len(YValues), stkP.mesh.yStart, stkP.mesh.yFin)
+for i in range( len(XValues) ):
+  for j in range( len(YValues) ):
+    hPower.SetBinContent(i+1, j+1, ZValues[i][j])
+hPower.Write()
+#gStokes.SetName("Stokes")
+#gStokes.Write()
+
+
+exit(0)
 
 [SpectrumCorrX, SpectrumCorrY] = GetUndulatorSpectrum(magFldCnt_Corr, elecBeam)
 gSpectrumCorr = TGraph( len(SpectrumCorrX), array('d', SpectrumCorrX), array('d', SpectrumCorrY) )
@@ -528,7 +561,7 @@ hSpectrumIdeal = TGraphToTH1F(gSpectrumIdeal)
 #hSpectrumData = TGraphToTH1F(gSpectrumData)
 hSpectrumCorr = TGraphToTH1F(gSpectrumCorr)
 hSpectrumIdeal.Write()
-hSpectrumData.Write()
+#hSpectrumData.Write()
 hSpectrumCorr.Write()
 PeaksIdeal = FindPeaksInHistogram(hSpectrumIdeal)
 #PeaksData = FindPeaksInHistogram(hSpectrumData)
@@ -557,18 +590,27 @@ PeaksCorrSorted.sort()
 #PeaksDataSorted.sort()
 PeaksIdealSorted.sort()
 
-for p in PeaksCorrSorted:
-  fPEAKS_Corr.write('%8.1f  %.6E\n' % (p, PeaksCorr[p]))
-#for p in PeaksDataSorted:
-#  fPEAKS_Data.write('%8.1f  %.6E\n' % (p, PeaksData[p]))
-for p in PeaksIdealSorted:
-  fPEAKS_Ideal.write('%8.1f  %.6E\n' % (p, PeaksIdeal[p]))
+for i in range( len(PeaksCorrSorted) ):
+  p = PeaksCorrSorted[i]
+  fPEAKS_Corr.write('%2i  %8.1f  %.6E\n' % (i, p, PeaksCorr[p]))
+#for i in range( len(PeaksDataSorted) ):
+#  p = PeaksDataSorted[i]
+#  fPEAKS_Data.write('%2i %8.1f  %.6E\n' % (i, p, PeaksData[p]))
+for i in range( len(PeaksIdealSorted) ):
+  p = PeaksIdealSorted[i]
+  fPEAKS_Ideal.write('%2i  %8.1f  %.6E\n' % (i, p, PeaksIdeal[p]))
 
 
 
 fPEAKS_Corr.close()
 #fPEAKS_Data.close()
 fPEAKS_Ideal.close()
+
+
+
+
+
+
 
 
 

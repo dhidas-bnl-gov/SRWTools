@@ -2,6 +2,7 @@
 import sys
 sys.path.append('/home/dhidas/SRW/env/work/srw_python')
 sys.path.append('/Users/dhidas/SRW/env/work/srw_python')
+sys.path.append('/nsls2/projects/bldev/SoftDev/dhidas/SRW/env/work/srw_python')
 from srwlib import *
 
 import ROOT
