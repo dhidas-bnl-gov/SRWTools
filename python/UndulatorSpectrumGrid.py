@@ -329,7 +329,7 @@ magFldCnt_Ideal = SRWLMagFldC([und], array('d', [xcID]), array('d', [ycID]), arr
 SpectrumAverages_Ideal = []
 SpectrumXValues_Ideal = []
 
-for i in range(20):
+for i in range(200):
   print 'Electron number in this section:', i
 
   elecBeamCopy = deepcopy(elecBeam)

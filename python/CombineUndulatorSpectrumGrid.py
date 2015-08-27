@@ -22,7 +22,8 @@ for i in range(1, N + 1):
   # Check for seeing this seed
   if Seed in Seeds:
     print 'WARNING: Seed is already in the seed list.  skipping file:', FileName
-    break
+    continue
+  Seeds.append(Seed)
 
   j = 0
   for l in fi:
