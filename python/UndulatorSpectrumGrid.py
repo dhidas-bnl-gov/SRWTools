@@ -39,7 +39,7 @@ print 'Set random.seed() to', RandomSeed
 BaseFileName = os.path.splitext(os.path.basename(InFileName))[0]
 
 # Name of output file for this section
-OutFileNameData = BaseFileName + "_Section_" + str(SectionNumber) + '_Spectrum.dat'
+OutFileNameData = BaseFileName + '_Section_' + str(SectionNumber) + '_Spectrum.dat'
 print 'Output file for spectrum calculation: ', OutFileNameData
 OutFileData = open(OutFileNameData, 'w')
 OutFileData.write(str(RandomSeed) + '\n')
