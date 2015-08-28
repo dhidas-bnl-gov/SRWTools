@@ -11,7 +11,7 @@ from SRWToolsUtil import *
 
 
 # extra root imports
-from ROOT import TLine
+from ROOT import TLine, TH1F
 
 
 
@@ -324,12 +324,17 @@ und = SRWLMagFldU([SRWLMagFldH(1, 'v', undBy, phBy, sBy, 1), SRWLMagFldH(1, 'h',
 magFldCnt_Ideal = SRWLMagFldC([und], array('d', [xcID]), array('d', [ycID]), array('d', [zcID])) #Container of all Field Elements
 
 
-
+# Histogram 
+hX  = TH1F('partStatMom1.x',  'partStatMom1.x',  100, -1e-4, 1e-4)
+hY  = TH1F('partStatMom1.y',  'partStatMom1.y',  100, -1e-5, 1e-5)
+hXP = TH1F('partStatMom1.xp', 'partStatMom1.xp', 100, -1e-4, 1e-4)
+hYP = TH1F('partStatMom1.yp', 'partStatMom1.yp', 100, -1e-5, 1e-5)
+hG = TH1F('artStatMom1.gamma', 'artStatMom1.gamma', 100, 5700, 6100)
 
 SpectrumAverages_Ideal = []
 SpectrumXValues_Ideal = []
 
-for i in range(200):
+for i in range(5):
   print 'Electron number in this section:', i
 
   elecBeamCopy = deepcopy(elecBeam)
@@ -344,10 +349,20 @@ for i in range(200):
   elecBeamCopy.partStatMom1.yp = elecYp0 + auxPYp
   elecBeamCopy.partStatMom1.gamma = elecGamma0 * (1 + elecAbsEnSpr * random.gauss(0, 1) / elecE0)
 
-  print elecBeamCopy.partStatMom1.y
+  if (DEBUG):
+    hX.Fill(elecBeamCopy.partStatMom1.x)
+    hY.Fill(elecBeamCopy.partStatMom1.y)
+    hXP.Fill(elecBeamCopy.partStatMom1.xp)
+    hYP.Fill(elecBeamCopy.partStatMom1.yp)
+    hG.Fill(elecBeamCopy.partStatMom1.gamma)
+
+  print elecBeamCopy.partStatMom1.x
 
   # Get the spectrum
-  [X, Y] = GetUndulatorSpectrum(magFldCnt_Ideal, elecBeamCopy)
+  if SectionNumber == 0:
+    [X, Y] = GetUndulatorSpectrum(magFldCnt_Ideal, elecBeam)
+  else:
+    [X, Y] = GetUndulatorSpectrum(magFldCnt_Ideal, elecBeamCopy)
 
   if i == 0:
     SpectrumXValues_Ideal = X[:]
@@ -364,6 +379,9 @@ for i in range(200):
     gSpectrumIdeal.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
     gSpectrumIdeal.Write()
 
+  if SectionNumber == 0:
+    break
+
 
 
 if (DEBUG):
@@ -373,8 +391,12 @@ if (DEBUG):
   gSpectrumIdeal.GetXaxis().SetTitle('Photon Energy [eV]')
   gSpectrumIdeal.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
   gSpectrumIdeal.Write()
-
-
+  hX.Write()
+  hY.Write()
+  hXP.Write()
+  hYP.Write()
+  hG.Write()
+  
 
 
 
