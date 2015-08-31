@@ -22,4 +22,5 @@ for l in fi:
 c = TCanvas()
 c.cd()
 g.Draw('ACP')
-c.SaveAs('Average.pdf')
+c.SetLogy(1)
+c.SaveAs('Average.png')

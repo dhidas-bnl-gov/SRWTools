@@ -334,8 +334,8 @@ hG = TH1F('artStatMom1.gamma', 'artStatMom1.gamma', 100, 5700, 6100)
 SpectrumAverages_Ideal = []
 SpectrumXValues_Ideal = []
 
-for i in range(5):
-  print 'Electron number in this section:', i
+for i in range(200):
+#  print 'Electron number in this section:', i
 
   elecBeamCopy = deepcopy(elecBeam)
 
@@ -356,7 +356,6 @@ for i in range(5):
     hYP.Fill(elecBeamCopy.partStatMom1.yp)
     hG.Fill(elecBeamCopy.partStatMom1.gamma)
 
-  print elecBeamCopy.partStatMom1.x
 
   # Get the spectrum
   if SectionNumber == 0:
