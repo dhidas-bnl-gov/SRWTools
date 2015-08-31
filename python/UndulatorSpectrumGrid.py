@@ -36,26 +36,21 @@ RandomSeed = 131147 + SectionNumber
 random.seed(RandomSeed)
 print 'Set random.seed() to', RandomSeed
 
-BaseFileName = os.path.splitext(os.path.basename(InFileName))[0]
 
-# Name of output file for this section
-OutFileNameData = BaseFileName + '_Section_' + str(SectionNumber) + '_Spectrum.dat'
-print 'Output file for spectrum calculation: ', OutFileNameData
+# Name of output files for this section
+BaseFileName = os.path.splitext(os.path.basename(InFileName))[0]
+OutFileNameData = BaseFileName + '_Spectrum_Section_' + str(SectionNumber).zfill(4) + '.dat' if SectionNumber > 0 else BaseFileName + '_Spectrum_SingleElectron.dat'
+OutFileNameRoot = BaseFileName + '_Spectrum_Section_' + str(SectionNumber).zfill(4) + '.root' if SectionNumber > 0 else BaseFileName + '_Spectrum_SingleElectron.root'
+print 'Output file for spectrum calculation: ', OutFileNameData, OutFileNameRoot
+
+# Open output file and print seed as the first line (seed checking is done later in combination)
 OutFileData = open(OutFileNameData, 'w')
 OutFileData.write(str(RandomSeed) + '\n')
 
-# Open the input and output files.  Output file is ROOT format
+# Open the input and output ROOT file.
 fi = open(InFileName, 'r')
-fROOT = None
-if (DEBUG):
-  fROOT = TFile(BaseFileName + '_Section_' + str(SectionNumber) + '_Spectrum.root', 'recreate')
-  fROOT.cd()
-
-# Create variables for TTree filling
-tZ  = float()
-tBx = float()
-tBy = float()
-tBz = float()
+fROOT = TFile(OutFileNameRoot, 'recreate')
+fROOT.cd()
 
 
 # Create arrays for magnetic field.  These contain the field data for the entire input file
@@ -83,10 +78,13 @@ fi.close()
 
 # Get the max and mins in the field
 [MaxListInd, MaxListBy] = FindMaxAndMins(Z, By)
-[MaxByZ, MaxBy] = FindMinMaxFromFit(MaxListInd, Z, By, fROOT)
+[MaxByZ, MaxBy] = FindMinMaxFromFit(MaxListInd, Z, By, None)
 
 
-if (DEBUG):
+
+
+
+if SectionNumber == 0:
   # Save a graph of the points found
   gMaxBy = TGraph(len(MaxByZ), array('d', MaxByZ), array('d', MaxBy))
   gMaxBy.SetName('MaxBy')
@@ -133,7 +131,7 @@ for i in range (6):
   MaxByChopped.pop(0)
   MaxByZChopped.pop(0)
 
-# just save absolute value
+# Just save absolute value
 MaxByChoppedAbs = map(abs, MaxByChopped)
 
 # For comparing the number of peaks found and taken off on the sides
@@ -167,13 +165,12 @@ UNDULATOR_ZEND   = UNDULATOR_ZCENTER + ( PERIOD_LENGTH * (NPERIODS + 4) / 2)
 UNDULATOR_LENGTH = UNDULATOR_ZEND - UNDULATOR_ZSTART
 print 'UNDULATOR ZSTART ZEND LENGTH:', UNDULATOR_ZSTART, UNDULATOR_ZEND, UNDULATOR_LENGTH
 
-
 # Peak By to use in calculations
 PEAK_BY = AvgMaxBy
 
 
-
-if (DEBUG):
+# Draw Undulator fields and START, CENTER, END
+if SectionNumber == 0:
   lStart = TLine(UNDULATOR_ZSTART, -1, UNDULATOR_ZSTART, 1)
   lStart.SetLineColor(2)
   lCenter = TLine(UNDULATOR_ZCENTER, -1, UNDULATOR_ZCENTER, 1)
@@ -215,23 +212,10 @@ gMaxByChoppedAbs.Fit(fline, 'q')
 gMaxByChoppedAbs.SetMarkerStyle(32)
 print 'Max By linear fit parameters [0]+[1]x::', fline.GetParameter(0), fline.GetParameter(1)
 
-if (DEBUG):
+if SectionNumber == 0:
   gMaxByChoppedAbs.Write()
 
 
-# Look at the pos vs neg peaks
-cMax  = []
-cMaxZ = []
-cMin  = []
-cMinZ = []
-for i in range( len(MaxByChopped) ):
-  x = MaxByChopped[i]
-  if x >= 0:
-    cMax.append(x)
-    cMaxZ.append( MaxByZChopped[i] )
-  else:
-    cMin.append(x)
-    cMinZ.append( MaxByZChopped[i] )
 
 
 
@@ -288,35 +272,34 @@ elecBeam.partStatMom1.yp = 0
 
 
 
-elecX0 = elecBeam.partStatMom1.x
-elecXp0 = elecBeam.partStatMom1.xp
-elecY0 = elecBeam.partStatMom1.y
-elecYp0 = elecBeam.partStatMom1.yp
+elecX0     = elecBeam.partStatMom1.x
+elecXp0    = elecBeam.partStatMom1.xp
+elecY0     = elecBeam.partStatMom1.y
+elecYp0    = elecBeam.partStatMom1.yp
 elecGamma0 = elecBeam.partStatMom1.gamma
-elecE0 = elecGamma0*(0.51099890221e-03) #Assuming electrons 
+elecE0     = elecGamma0*(0.51099890221e-03) #Assuming electrons 
 
-elecSigXe2 = elecBeam.arStatMom2[0] #<(x-x0)^2>
-elecMXXp = elecBeam.arStatMom2[1] #<(x-x0)*(xp-xp0)>
-elecSigXpe2 = elecBeam.arStatMom2[2] #<(xp-xp0)^2>
-elecSigYe2 =elecBeam.arStatMom2[3] #<(y-y0)^2>
-elecMYYp = elecBeam.arStatMom2[4] #<(y-y0)*(yp-yp0)>
-elecSigYpe2 = elecBeam.arStatMom2[5] #<(yp-yp0)^2>
+elecSigXe2   = elecBeam.arStatMom2[0] #<(x-x0)^2>
+elecMXXp     = elecBeam.arStatMom2[1] #<(x-x0)*(xp-xp0)>
+elecSigXpe2  = elecBeam.arStatMom2[2] #<(xp-xp0)^2>
+elecSigYe2   = elecBeam.arStatMom2[3] #<(y-y0)^2>
+elecMYYp     = elecBeam.arStatMom2[4] #<(y-y0)*(yp-yp0)>
+elecSigYpe2  = elecBeam.arStatMom2[5] #<(yp-yp0)^2>
 elecRelEnSpr = sqrt(elecBeam.arStatMom2[10]) #<(E-E0)^2>/E0^2
 elecAbsEnSpr = elecE0*elecRelEnSpr
-#print('DEBUG MESSAGE: elecAbsEnSpr=', elecAbsEnSpr)
 
-multX = 0.5/(elecSigXe2*elecSigXpe2 - elecMXXp*elecMXXp)
-BX = elecSigXe2*multX
-GX = elecSigXpe2*multX
-AX = elecMXXp*multX
-SigPX = 1/sqrt(2*GX)
-SigQX = sqrt(GX/(2*(BX*GX - AX*AX)))
-multY = 0.5/(elecSigYe2*elecSigYpe2 - elecMYYp*elecMYYp)
-BY = elecSigYe2*multY
-GY = elecSigYpe2*multY
-AY = elecMYYp*multY
-SigPY = 1/sqrt(2*GY)
-SigQY = sqrt(GY/(2*(BY*GY - AY*AY)))
+multX = 0.5 / (elecSigXe2 * elecSigXpe2 - elecMXXp * elecMXXp)
+BX    = elecSigXe2 * multX
+GX    = elecSigXpe2 * multX
+AX    = elecMXXp * multX
+SigPX = 1 / sqrt(2 * GX)
+SigQX = sqrt(GX / (2 * (BX * GX - AX * AX)))
+multY = 0.5 / (elecSigYe2 * elecSigYpe2 - elecMYYp * elecMYYp)
+BY    = elecSigYe2 * multY
+GY    = elecSigYpe2 * multY
+AY    = elecMYYp * multY
+SigPY = 1 / sqrt(2 * GY)
+SigQY = sqrt(GY / (2 * (BY * GY - AY * AY)))
 
 
 # Get undulator and Ideal magnetic field based off of average peak By field
@@ -325,11 +308,11 @@ magFldCnt_Ideal = SRWLMagFldC([und], array('d', [xcID]), array('d', [ycID]), arr
 
 
 # Histogram 
-hX  = TH1F('partStatMom1.x',  'partStatMom1.x',  100, -1e-4, 1e-4)
-hY  = TH1F('partStatMom1.y',  'partStatMom1.y',  100, -1e-5, 1e-5)
-hXP = TH1F('partStatMom1.xp', 'partStatMom1.xp', 100, -1e-4, 1e-4)
-hYP = TH1F('partStatMom1.yp', 'partStatMom1.yp', 100, -1e-5, 1e-5)
-hG = TH1F('artStatMom1.gamma', 'artStatMom1.gamma', 100, 5700, 6100)
+hX  = TH1F('partStatMom1.x',      'partStatMom1.x',      100, -1e-4, 1e-4)
+hY  = TH1F('partStatMom1.y',      'partStatMom1.y',      100, -1e-5, 1e-5)
+hXP = TH1F('partStatMom1.xp',     'partStatMom1.xp',     100, -1e-4, 1e-4)
+hYP = TH1F('partStatMom1.yp',     'partStatMom1.yp',     100, -1e-5, 1e-5)
+hG  = TH1F('partStatMom1.energy', 'partStatMom1.energy', 100,   2.8, 3.2)
 
 SpectrumAverages_Ideal = []
 SpectrumXValues_Ideal = []
@@ -337,24 +320,25 @@ SpectrumXValues_Ideal = []
 for i in range(200):
 #  print 'Electron number in this section:', i
 
+  # Copy the electron beam for smearing
   elecBeamCopy = deepcopy(elecBeam)
 
+  # Smear X and X', Y, Y', and gamma
   auxPXp = SigQX * random.gauss(0, 1)
-  auxPX = SigPX * random.gauss(0, 1) + AX * auxPXp / GX
-  elecBeamCopy.partStatMom1.x = elecX0 + auxPX
+  auxPX  = SigPX * random.gauss(0, 1) + AX * auxPXp / GX
+  elecBeamCopy.partStatMom1.x  = elecX0 + auxPX
   elecBeamCopy.partStatMom1.xp = elecXp0 + auxPXp
   auxPYp = SigQY * random.gauss(0, 1)
-  auxPY = SigPY * random.gauss(0, 1) + AY * auxPYp / GY
-  elecBeamCopy.partStatMom1.y = elecY0 + auxPY
+  auxPY  = SigPY * random.gauss(0, 1) + AY * auxPYp / GY
+  elecBeamCopy.partStatMom1.y  = elecY0 + auxPY
   elecBeamCopy.partStatMom1.yp = elecYp0 + auxPYp
   elecBeamCopy.partStatMom1.gamma = elecGamma0 * (1 + elecAbsEnSpr * random.gauss(0, 1) / elecE0)
 
-  if (DEBUG):
-    hX.Fill(elecBeamCopy.partStatMom1.x)
-    hY.Fill(elecBeamCopy.partStatMom1.y)
-    hXP.Fill(elecBeamCopy.partStatMom1.xp)
-    hYP.Fill(elecBeamCopy.partStatMom1.yp)
-    hG.Fill(elecBeamCopy.partStatMom1.gamma)
+  hX.Fill(elecBeamCopy.partStatMom1.x)
+  hY.Fill(elecBeamCopy.partStatMom1.y)
+  hXP.Fill(elecBeamCopy.partStatMom1.xp)
+  hYP.Fill(elecBeamCopy.partStatMom1.yp)
+  hG.Fill(elecBeamCopy.partStatMom1.gamma * (0.51099890221e-03))
 
 
   # Get the spectrum
@@ -363,16 +347,20 @@ for i in range(200):
   else:
     [X, Y] = GetUndulatorSpectrum(magFldCnt_Ideal, elecBeamCopy)
 
+  # For keeping a local running average
   if i == 0:
     SpectrumXValues_Ideal = X[:]
 
-  AddToRunningAverages (SpectrumAverages_Ideal, i, Y)
+  SpectrumAverages_Ideal = AddToRunningAverages (SpectrumAverages_Ideal, i, Y)
 
 
 
-  if (DEBUG):
+  if DEBUG or SectionNumber == 0:
     gSpectrumIdeal = TGraph( len(X), array('d', X), array('d', Y) )
-    gSpectrumIdeal.SetName('Spectrum_Ideal_' + str(i))
+    if SectionNumber == 0:
+      gSpectrumIdeal.SetName('Spectrum_Ideal_SingleElectron')
+    else:
+      gSpectrumIdeal.SetName('Spectrum_Ideal_' + str(i))
     gSpectrumIdeal.SetTitle('Simulated Spectrum')
     gSpectrumIdeal.GetXaxis().SetTitle('Photon Energy [eV]')
     gSpectrumIdeal.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
@@ -383,7 +371,7 @@ for i in range(200):
 
 
 
-if (DEBUG):
+if (DEBUG and SectionNumber != 0):
   gSpectrumIdeal = TGraph( len(SpectrumXValues_Ideal), array('d', SpectrumXValues_Ideal), array('d', SpectrumAverages_Ideal) )
   gSpectrumIdeal.SetName('Spectrum_Ideal_Average')
   gSpectrumIdeal.SetTitle('Simulated Spectrum')
@@ -404,17 +392,15 @@ if (DEBUG):
 
 
 for i in range( len(SpectrumXValues_Ideal) ):
-  OutFileData.write( str(SpectrumXValues_Ideal[i]) + ' ' + str(SpectrumAverages_Ideal[i]) + '\n' )
+  OutFileData.write( '%.9E %.9E\n' % (SpectrumXValues_Ideal[i], SpectrumAverages_Ideal[i]) )
 
 
 
-exit(0)
 
 
-
-if (DEBUG):
+if (SectionNumber == 0):
   # Get the electron trajectory
-  partTraj_Ideal = GetElectronTrajectory(magFldCnt_Ideal, -1, 1)
+  partTraj_Ideal = GetElectronTrajectory(magFldCnt_Ideal, UNDULATOR_ZSTART, UNDULATOR_ZEND)
 
   # Get the Z Values for the plot
   ZValues = [float(x) * ((partTraj_Ideal.ctEnd - partTraj_Ideal.ctStart) / float(partTraj_Ideal.np)) for x in range(0, partTraj_Ideal.np)]
@@ -441,9 +427,8 @@ if (DEBUG):
 
 
 
-
-if (DEBUG):
-  fROOT.Close()
+# Close root file
+fROOT.Close()
 
 
 

@@ -505,20 +505,19 @@ def TGraphToTH1F (g):
 def AddToRunningAverages (Averages, N, Values):
   "Take a list of running averages and add to it.  Understand the limitations of what you are doing if you are using this"
 
+
   if N == 0:
     for v in Values:
       Averages.append(v)
-    return
+    return Averages
 
 
   if len(Averages) != len(Values):
     raise ValueError('Length of arrays does not match')
 
+  NewAverages = []
   for i in range( len(Averages) ):
-    V = Values[i]
-    A = Averages[i]
+    NewAverages.append(Averages[i] * (N / (N + 1.)) + Values[i] / (N + 1.))
 
-    Averages[i] = A * (N / (N + 1)) + V / (N + 1)
-
-  return
+  return NewAverages
 
