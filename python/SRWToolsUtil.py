@@ -234,13 +234,13 @@ def GetUndulatorSpectrum (magFldCnt, elecBeam):
   # For spectrum vs photon energy
   wfr1 = SRWLWfr()
   wfr1.allocate(20000, 1, 1)
-  wfr1.mesh.zStart = 20.
+  wfr1.mesh.zStart = 30.
   wfr1.mesh.eStart = 10.
   wfr1.mesh.eFin = 70000.
-  wfr1.mesh.xStart = -0.000005
-  wfr1.mesh.xFin = 0.000005
-  wfr1.mesh.yStart = -0.000005
-  wfr1.mesh.yFin = 0.000005
+  wfr1.mesh.xStart = -0.00001
+  wfr1.mesh.xFin = 0.00001
+  wfr1.mesh.yStart = -0.00001
+  wfr1.mesh.yFin = 0.00001
   wfr1.partBeam = elecBeam
 
 
@@ -520,4 +520,12 @@ def AddToRunningAverages (Averages, N, Values):
     NewAverages.append(Averages[i] * (N / (N + 1.)) + Values[i] / (N + 1.))
 
   return NewAverages
+
+
+
+def StepSize (X) :
+  "step size based on last minus first divide by N-1"
+
+  N = len(X) - 1
+  return (X[-1] - X[0]) / N
 

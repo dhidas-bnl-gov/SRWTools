@@ -248,7 +248,7 @@ magFldCnt_Data.arMagFld[0].nRep = 1
 partTraj = GetElectronTrajectory(magFldCnt_Data, UNDULATOR_ZSTART, UNDULATOR_ZEND)
 
 # Get the Z Values for the plot
-ZValues = [float(x) * ((partTraj.ctEnd - partTraj.ctStart) / float(partTraj.np)) for x in range(0, partTraj.np)]
+ZValues = numpy.linspace(partTraj.ctStart, partTraj.ctEnd, partTraj.np)
 
 
 gElectronX_Data = TGraph( len(ZValues), array('d', ZValues), partTraj.arX)
@@ -344,7 +344,7 @@ gStokes.Write()
 partTraj_Ideal = GetElectronTrajectory(magFldCnt_Ideal, -1, 1)
 
 # Get the Z Values for the plot
-ZValues = [float(x) * ((partTraj_Ideal.ctEnd - partTraj_Ideal.ctStart) / float(partTraj_Ideal.np)) for x in range(0, partTraj_Ideal.np)]
+ZValues = numpy.linspace(partTraj_Ideal.ctStart, partTraj_Ideal.ctEnd, partTraj_Ideal.np)
 
 
 gElectronX_Ideal = TGraph( len(ZValues), array('d', ZValues), partTraj_Ideal.arX)
@@ -378,12 +378,6 @@ gSpectrumIdeal.Write()
 
 
 
-def dimdelta (X) :
-  "step size based on last minus first divide by N-1"
-
-  N = len(X) - 1
-  return (X[-1] - X[0]) / N
-
 
 # This is only here to test
 #AddToField(Z, By, UNDULATOR_ZCENTER, 1.2, -0.00001)
@@ -404,10 +398,10 @@ auxI2Y = FInt2By[-1]
 
 # Get sRangeY = length of undulator, not entire field
 npAuxFldInt = len(Bx)
-sRangeX = (npAuxFldInt - 1) * dimdelta(Z)
+sRangeX = (npAuxFldInt - 1) * StepSize(Z)
 
 npAuxFldInt = len(By)
-sRangeY = (npAuxFldInt - 1) * dimdelta(Z)
+sRangeY = (npAuxFldInt - 1) * StepSize(Z)
 
 
 
@@ -482,7 +476,7 @@ magFldCnt_Corr.arMagFld[0].nRep = 1
 partTraj_Corr = GetElectronTrajectory(magFldCnt_Corr, -1, 1)
 
 # Get the Z Values for the plot
-ZValues_Corr = [float(x) * ((partTraj_Corr.ctEnd - partTraj_Corr.ctStart) / float(partTraj_Corr.np)) for x in range(0, partTraj_Corr.np)]
+ZValues = numpy.linspace(partTraj_Corr.ctStart, partTraj_Corr.ctEnd, partTraj_Corr.np)
 
 
 gElectronX_Corr = TGraph( len(ZValues_Corr), array('d', ZValues_Corr), partTraj_Corr.arX)

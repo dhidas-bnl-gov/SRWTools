@@ -225,25 +225,78 @@ if SectionNumber == 0:
 
 
 
-# Defining Magnetic Field container:
-magFldCnt_Data = SRWLMagFldC()
-magFldCnt_Data.allocate(1)
+# Field integrals
+FInt1Bx = IntegralVector(Z, Bx)
+FInt2Bx = IntegralVector(Z, FInt1Bx)
+FInt1By = IntegralVector(Z, By)
+FInt2By = IntegralVector(Z, FInt1By)
+
+auxI1X = FInt1Bx[-1]
+auxI2X = FInt2Bx[-1]
+auxI1Y = FInt1By[-1]
+auxI2Y = FInt2By[-1]
 
 
-# Read data from file and make mag field object
-magFldCnt_Data.arMagFld[0] = ReadHallProbeDataSRW(InFileName, UNDULATOR_ZSTART, UNDULATOR_ZEND)
+# Get sRange = length of undulator, not entire field
+npAuxFldInt = len(Bx)
+sRangeX = (npAuxFldInt - 1) * StepSize(Z)
+npAuxFldInt = len(By)
+sRangeY = (npAuxFldInt - 1) * StepSize(Z)
+
+
+# Distance between kicks and center X Y
+DistanceBetweenKicks = UNDULATOR_ZEND - UNDULATOR_ZSTART
+sCenX = 0
+sCenY = 0
+
+# RMS Kick Length in [m]
+rmsLenKick = 0.050
+
+# Correction kicks
+KickEntryHorizontal =  0.5 * (sRangeY / DistanceBetweenKicks - 1) * auxI1Y - auxI2Y / DistanceBetweenKicks
+KickExitHorizontal  = -0.5 * (sRangeY / DistanceBetweenKicks + 1) * auxI1Y + auxI2Y / DistanceBetweenKicks
+KickEntryVertical   =  0.5 * (sRangeX / DistanceBetweenKicks - 1) * auxI1X - auxI2X / DistanceBetweenKicks
+KickExitVertical    = -0.5 * (sRangeX / DistanceBetweenKicks + 1) * auxI1X + auxI2X / DistanceBetweenKicks
+
+
+print 'DistanceBetweenKicks: ', DistanceBetweenKicks
+print 'Kick EnH ExH EnV ExV: ', KickEntryHorizontal, KickExitHorizontal, KickEntryVertical, KickExitVertical
+
+
+# Add kicks to magnetic field
+AddToField(Z, By, UNDULATOR_ZCENTER - 0.5 * DistanceBetweenKicks, rmsLenKick, KickEntryHorizontal)
+AddToField(Z, By, UNDULATOR_ZCENTER + 0.5 * DistanceBetweenKicks, rmsLenKick, KickExitHorizontal)
+AddToField(Z, Bx, UNDULATOR_ZCENTER - 0.5 * DistanceBetweenKicks, rmsLenKick, KickEntryVertical)
+AddToField(Z, Bx, UNDULATOR_ZCENTER + 0.5 * DistanceBetweenKicks, rmsLenKick, KickExitVertical)
+
+# Field integrals
+BxCorrI1 = IntegralVector(Z, Bx)
+ByCorrI1 = IntegralVector(Z, By)
+BxCorrI2 = IntegralVector(Z, BxCorrI1)
+ByCorrI2 = IntegralVector(Z, ByCorrI1)
+print "Befor Correction 1st Integral Bx By", FInt1Bx[-1],  FInt1By[-1]
+print "After Correction 1st Integral Bx By", BxCorrI1[-1], ByCorrI1[-1]
+print "Befor Correction 2nd Integral Bx By", FInt2Bx[-1],  FInt2By[-1]
+print "After Correction 2nd Integral Bx By", BxCorrI2[-1], ByCorrI2[-1]
+
+# Corrected field container
+magFldCnt_Corr = SRWLMagFldC()
+magFldCnt_Corr.allocate(1)
+
+# Make magnetic field object for corrected field
+magFldCnt_Corr.arMagFld[0] = SRWLMagFld3D( array('d', Bx), array('d', By), array('d', Bz), 1, 1, len(Z), 0.0, 0.0, Z[-1] - Z[0], 1, 1, None, None, _arZ=array('d', Z))
 
 # Field interpolation method
-magFldCnt_Data.arMagFld[0].interp = 4
+magFldCnt_Corr.arMagFld[0].interp = 4
 
 # ID center
-magFldCnt_Data.arXc[0] = 0.0
-magFldCnt_Data.arYc[0] = 0.0
-magFldCnt_Data.arZc[0] = UNDULATOR_ZCENTER
+magFldCnt_Corr.arXc[0] = 0.0
+magFldCnt_Corr.arYc[0] = 0.0
+magFldCnt_Corr.arZc[0] = UNDULATOR_ZCENTER
+
 
 # Number of reps of field
-magFldCnt_Data.arMagFld[0].nRep = 1
-
+magFldCnt_Corr.arMagFld[0].nRep = 1
 
 
 
@@ -312,7 +365,7 @@ hX  = TH1F('partStatMom1.x',      'partStatMom1.x',      100, -1e-4, 1e-4)
 hY  = TH1F('partStatMom1.y',      'partStatMom1.y',      100, -1e-5, 1e-5)
 hXP = TH1F('partStatMom1.xp',     'partStatMom1.xp',     100, -1e-4, 1e-4)
 hYP = TH1F('partStatMom1.yp',     'partStatMom1.yp',     100, -1e-5, 1e-5)
-hG  = TH1F('partStatMom1.energy', 'partStatMom1.energy', 100,   2.8, 3.2)
+hG  = TH1F('partStatMom1.energy', 'partStatMom1.energy', 100,   2.9, 3.1)
 
 SpectrumAverages_Ideal = []
 SpectrumXValues_Ideal = []
@@ -334,6 +387,7 @@ for i in range(200):
   elecBeamCopy.partStatMom1.yp = elecYp0 + auxPYp
   elecBeamCopy.partStatMom1.gamma = elecGamma0 * (1 + elecAbsEnSpr * random.gauss(0, 1) / elecE0)
 
+  # Fill histograms for diagnostics
   hX.Fill(elecBeamCopy.partStatMom1.x)
   hY.Fill(elecBeamCopy.partStatMom1.y)
   hXP.Fill(elecBeamCopy.partStatMom1.xp)
@@ -344,8 +398,10 @@ for i in range(200):
   # Get the spectrum
   if SectionNumber == 0:
     [X, Y] = GetUndulatorSpectrum(magFldCnt_Ideal, elecBeam)
+    [SpectrumCorrX, SpectrumCorrY] = GetUndulatorSpectrum(magFldCnt_Corr, elecBeam)
   else:
     [X, Y] = GetUndulatorSpectrum(magFldCnt_Ideal, elecBeamCopy)
+    [SpectrumCorrX, SpectrumCorrY] = GetUndulatorSpectrum(magFldCnt_Corr, elecBeamCopy)
 
   # For keeping a local running average
   if i == 0:
@@ -393,6 +449,7 @@ if (DEBUG and SectionNumber != 0):
 
 for i in range( len(SpectrumXValues_Ideal) ):
   OutFileData.write( '%.9E %.9E\n' % (SpectrumXValues_Ideal[i], SpectrumAverages_Ideal[i]) )
+OutFileData.close()
 
 
 
@@ -403,7 +460,7 @@ if (SectionNumber == 0):
   partTraj_Ideal = GetElectronTrajectory(magFldCnt_Ideal, UNDULATOR_ZSTART, UNDULATOR_ZEND)
 
   # Get the Z Values for the plot
-  ZValues = [float(x) * ((partTraj_Ideal.ctEnd - partTraj_Ideal.ctStart) / float(partTraj_Ideal.np)) for x in range(0, partTraj_Ideal.np)]
+  ZValues = numpy.linspace(partTraj_Ideal.ctStart, partTraj_Ideal.ctEnd, partTraj_Ideal.np)
 
   gElectronX_Ideal = TGraph( len(ZValues), array('d', ZValues), partTraj_Ideal.arX)
   gElectronY_Ideal = TGraph( len(ZValues), array('d', ZValues), partTraj_Ideal.arY)
@@ -420,6 +477,29 @@ if (SectionNumber == 0):
 
   gElectronX_Ideal.Write()
   gElectronY_Ideal.Write()
+
+  # Get the electron trajectory for corrected field
+  partTraj_Corr = GetElectronTrajectory(magFldCnt_Corr, UNDULATOR_ZSTART, UNDULATOR_ZEND)
+
+  # Get the Z Values for the plot
+  ZValues = numpy.linspace(partTraj_Corr.ctStart, partTraj_Corr.ctEnd, partTraj_Corr.np)
+
+  # Graphs for electron trajectory
+  gElectronX_Corr = TGraph( len(ZValues_Corr), array('d', ZValues_Corr), partTraj_Corr.arX)
+  gElectronY_Corr = TGraph( len(ZValues_Corr), array('d', ZValues_Corr), partTraj_Corr.arY)
+
+  gElectronX_Corr.SetTitle('Electron Trajectory in X')
+  gElectronX_Corr.GetXaxis().SetTitle('Z Position [m]')
+  gElectronX_Corr.GetYaxis().SetTitle('X Position [m]')
+  gElectronX_Corr.SetName("ElectronX_Corr")
+
+  gElectronY_Corr.SetTitle('Electron Trajectory in Y')
+  gElectronY_Corr.GetXaxis().SetTitle('Z Position [m]')
+  gElectronY_Corr.GetYaxis().SetTitle('Y Position [m]')
+  gElectronY_Corr.SetName("ElectronY_Corr")
+
+  gElectronX_Corr.Write()
+  gElectronY_Corr.Write()
 
 
 
