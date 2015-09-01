@@ -39,13 +39,16 @@ print 'Set random.seed() to', RandomSeed
 
 # Name of output files for this section
 BaseFileName = os.path.splitext(os.path.basename(InFileName))[0]
-OutFileNameData = BaseFileName + '_Spectrum_Section_' + str(SectionNumber).zfill(4) + '.dat' if SectionNumber > 0 else BaseFileName + '_Spectrum_SingleElectron.dat'
+OutFileNameDataIdeal = BaseFileName + '_SpectrumIdeal_Section_' + str(SectionNumber).zfill(4) + '.dat' if SectionNumber > 0 else BaseFileName + '_SpectrumIdeal_SingleElectron.dat'
+OutFileNameDataCorr  = BaseFileName + '_SpectrumCorr_Section_'  + str(SectionNumber).zfill(4) + '.dat' if SectionNumber > 0 else BaseFileName + '_SpectrumCorr_SingleElectron.dat'
 OutFileNameRoot = BaseFileName + '_Spectrum_Section_' + str(SectionNumber).zfill(4) + '.root' if SectionNumber > 0 else BaseFileName + '_Spectrum_SingleElectron.root'
-print 'Output file for spectrum calculation: ', OutFileNameData, OutFileNameRoot
+print 'Output files for spectrum calculation: ', OutFileNameDataIdeal, OutFileNameDataCorr, OutFileNameRoot
 
 # Open output file and print seed as the first line (seed checking is done later in combination)
-OutFileData = open(OutFileNameData, 'w')
-OutFileData.write(str(RandomSeed) + '\n')
+OutFileDataIdeal = open(OutFileNameDataIdeal, 'w')
+OutFileDataCorr  = open(OutFileNameDataCorr, 'w')
+OutFileDataIdeal.write(str(RandomSeed) + '\n')
+OutFileDataCorr.write(str(RandomSeed) + '\n')
 
 # Open the input and output ROOT file.
 fi = open(InFileName, 'r')
@@ -369,9 +372,11 @@ hG  = TH1F('partStatMom1.energy', 'partStatMom1.energy', 100,   2.9, 3.1)
 
 SpectrumAverages_Ideal = []
 SpectrumXValues_Ideal = []
+SpectrumAverages_Corr = []
+SpectrumXValues_Corr = []
 
-for i in range(200):
-#  print 'Electron number in this section:', i
+for i in range(50):
+  print 'Electron number in this section:', i
 
   # Copy the electron beam for smearing
   elecBeamCopy = deepcopy(elecBeam)
@@ -406,12 +411,14 @@ for i in range(200):
   # For keeping a local running average
   if i == 0:
     SpectrumXValues_Ideal = X[:]
+    SpectrumXValues_Corr  = SpectrumCorrX[:]
 
   SpectrumAverages_Ideal = AddToRunningAverages (SpectrumAverages_Ideal, i, Y)
+  SpectrumAverages_Corr  = AddToRunningAverages (SpectrumAverages_Corr, i, SpectrumCorrY)
 
 
 
-  if DEBUG or SectionNumber == 0:
+  if SectionNumber == 0:
     gSpectrumIdeal = TGraph( len(X), array('d', X), array('d', Y) )
     if SectionNumber == 0:
       gSpectrumIdeal.SetName('Spectrum_Ideal_SingleElectron')
@@ -421,6 +428,16 @@ for i in range(200):
     gSpectrumIdeal.GetXaxis().SetTitle('Photon Energy [eV]')
     gSpectrumIdeal.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
     gSpectrumIdeal.Write()
+
+    gSpectrumCorr = TGraph( len(SpectrumCorrX), array('d', SpectrumCorrX), array('d', SpectrumCorrY) )
+    if SectionNumber == 0:
+      gSpectrumCorr.SetName('Spectrum_Corr_SingleElectron')
+    else:
+      gSpectrumCorr.SetName('Spectrum_Corr_' + str(i))
+    gSpectrumCorr.SetTitle('Simulated Spectrum')
+    gSpectrumCorr.GetXaxis().SetTitle('Photon Energy [eV]')
+    gSpectrumCorr.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
+    gSpectrumCorr.Write()
 
   if SectionNumber == 0:
     break
@@ -433,7 +450,15 @@ if (DEBUG and SectionNumber != 0):
   gSpectrumIdeal.SetTitle('Simulated Spectrum')
   gSpectrumIdeal.GetXaxis().SetTitle('Photon Energy [eV]')
   gSpectrumIdeal.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
-  gSpectrumIdeal.Write()
+  #gSpectrumIdeal.Write()
+
+  gSpectrumCorr = TGraph( len(SpectrumXValues_Corr), array('d', SpectrumXValues_Corr), array('d', SpectrumAverages_Corr) )
+  gSpectrumCorr.SetName('Spectrum_Corr_Average')
+  gSpectrumCorr.SetTitle('Simulated Spectrum')
+  gSpectrumCorr.GetXaxis().SetTitle('Photon Energy [eV]')
+  gSpectrumCorr.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
+  #gSpectrumCorr.Write()
+
   hX.Write()
   hY.Write()
   hXP.Write()
@@ -448,8 +473,12 @@ if (DEBUG and SectionNumber != 0):
 
 
 for i in range( len(SpectrumXValues_Ideal) ):
-  OutFileData.write( '%.9E %.9E\n' % (SpectrumXValues_Ideal[i], SpectrumAverages_Ideal[i]) )
-OutFileData.close()
+  OutFileDataIdeal.write( '%.9E %.9E\n' % (SpectrumXValues_Ideal[i], SpectrumAverages_Ideal[i]) )
+OutFileDataIdeal.close()
+
+for i in range( len(SpectrumXValues_Corr) ):
+  OutFileDataCorr.write( '%.9E %.9E\n' % (SpectrumXValues_Corr[i], SpectrumAverages_Corr[i]) )
+OutFileDataCorr.close()
 
 
 
@@ -482,7 +511,7 @@ if (SectionNumber == 0):
   partTraj_Corr = GetElectronTrajectory(magFldCnt_Corr, UNDULATOR_ZSTART, UNDULATOR_ZEND)
 
   # Get the Z Values for the plot
-  ZValues = numpy.linspace(partTraj_Corr.ctStart, partTraj_Corr.ctEnd, partTraj_Corr.np)
+  ZValues_Corr = numpy.linspace(partTraj_Corr.ctStart, partTraj_Corr.ctEnd, partTraj_Corr.np)
 
   # Graphs for electron trajectory
   gElectronX_Corr = TGraph( len(ZValues_Corr), array('d', ZValues_Corr), partTraj_Corr.arX)
