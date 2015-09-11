@@ -163,71 +163,7 @@ def GetElectronTrajectory (magFldCnt, ZStart, ZEnd):
 
 
 
-def GetUndulatorSpectrumStokes (magFldCnt):
-  "Get the spectrum given und"
-
-  # Electron Beam
-  elecBeam = srwl_uti_src_e_beam('NSLS-II Low Beta Final')
-  elecBeam.partStatMom1.x = 0.
-  elecBeam.partStatMom1.y = 0.
-  elecBeam.partStatMom1.z = -1.8 #-0.5*undPer*(numPer + 4) #Initial Longitudinal Coordinate (set before the ID)
-  elecBeam.partStatMom1.xp = 0
-  elecBeam.partStatMom1.yp = 0
-
-  # For spectrum vs photon energy
-  wfr1 = SRWLWfr()
-  wfr1.allocate(20000, 1, 1)
-  wfr1.mesh.zStart = 20.
-  wfr1.mesh.eStart = 10.
-  wfr1.mesh.eFin = 70000.
-  wfr1.mesh.xStart = 0.0
-  wfr1.mesh.xFin = 0.0
-  wfr1.mesh.yStart = -0.0
-  wfr1.mesh.yFin = 0.0
-  wfr1.partBeam = elecBeam
-
-
-
-  # Precision
-  meth = 1
-  relPrec = 0.01
-  zStartInteg = 0
-  zEndInteg = 0
-  npTraj = 20000
-  useTermin = 1
-  sampFactNxNyForProp = 0
-  arPrecPar = [meth, relPrec, zStartInteg, zEndInteg, npTraj, useTermin, sampFactNxNyForProp]
-
-  # Calculation (SRWLIB function calls)
-  srwl.CalcElecFieldSR(wfr1, 0, magFldCnt, arPrecPar)
-  arI1 = array('f', [0]*wfr1.mesh.ne)
-  srwl.CalcIntFromElecField(arI1, wfr1, 6, 0, 0, wfr1.mesh.eStart, wfr1.mesh.xStart, wfr1.mesh.yStart)
-
-  # Get X-values for plotting
-  XValues = [(wfr1.mesh.eStart + float(x) * (wfr1.mesh.eFin - wfr1.mesh.eStart) / wfr1.mesh.ne) for x in range(wfr1.mesh.ne)]
-
-  return [XValues, arI1]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def GetUndulatorSpectrum (magFldCnt, elecBeam):
+def GetUndulatorSpectrum (magFldCnt, elecBeam, XStart = 0, XFin = 0, YStart = 0, YFin = 0):
   "Get the spectrum given und"
 
 
@@ -236,22 +172,22 @@ def GetUndulatorSpectrum (magFldCnt, elecBeam):
   wfr1.allocate(20000, 1, 1)
   wfr1.mesh.zStart = 30.
   wfr1.mesh.eStart = 10.
-  wfr1.mesh.eFin = 70000.
-  wfr1.mesh.xStart = -0.00001
-  wfr1.mesh.xFin = 0.00001
-  wfr1.mesh.yStart = -0.00001
-  wfr1.mesh.yFin = 0.00001
-  wfr1.partBeam = elecBeam
+  wfr1.mesh.eFin   = 70000.
+  wfr1.mesh.xStart = XStart
+  wfr1.mesh.xFin   = XFin
+  wfr1.mesh.yStart = YStart
+  wfr1.mesh.yFin   = YFin
+  wfr1.partBeam    = elecBeam
 
 
 
   # Precision
-  meth = 1
-  relPrec = 0.01
+  meth        = 1
+  relPrec     = 0.01
   zStartInteg = 0
-  zEndInteg = 0
-  npTraj = 20000
-  useTermin = 1
+  zEndInteg   = 0
+  npTraj      = 20000
+  useTermin   = 1
   sampFactNxNyForProp = 0
   arPrecPar = [meth, relPrec, zStartInteg, zEndInteg, npTraj, useTermin, sampFactNxNyForProp]
 
@@ -518,6 +454,30 @@ def AddToRunningAverages (Averages, N, Values):
   NewAverages = []
   for i in range( len(Averages) ):
     NewAverages.append(Averages[i] * (N / (N + 1.)) + Values[i] / (N + 1.))
+
+  return NewAverages
+
+
+
+def AddToRunningAverages2D (Averages, N, Values):
+  "Take a list of running averages and add to it.  Understand the limitations of what you are doing if you are using this"
+
+  print 'N', N
+
+  if N == 0:
+    for v in Values:
+      Averages.append(v)
+    return Averages
+
+
+  if len(Averages) != len(Values):
+    raise ValueError('Length of arrays does not match')
+
+  NewAverages = []
+  for i in range( len(Averages) ):
+    NewAverages.append([])
+    for j in range( len(Averages[i]) ):
+      NewAverages[-1].append(Averages[i][j] * (N / (N + 1.)) + Values[i][j] / (N + 1.))
 
   return NewAverages
 

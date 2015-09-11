@@ -476,7 +476,7 @@ magFldCnt_Corr.arMagFld[0].nRep = 1
 partTraj_Corr = GetElectronTrajectory(magFldCnt_Corr, -1, 1)
 
 # Get the Z Values for the plot
-ZValues = numpy.linspace(partTraj_Corr.ctStart, partTraj_Corr.ctEnd, partTraj_Corr.np)
+ZValues_Corr = numpy.linspace(partTraj_Corr.ctStart, partTraj_Corr.ctEnd, partTraj_Corr.np)
 
 
 gElectronX_Corr = TGraph( len(ZValues_Corr), array('d', ZValues_Corr), partTraj_Corr.arX)
