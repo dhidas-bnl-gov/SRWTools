@@ -50,7 +50,7 @@ def ReadHallProbeData (InFileName, ZMin = -999, ZMax = 999):
 
 
 
-def ReadHallProbeDataSRW (InFileName, ZMin = -0.850, ZMax = 0.850):
+def ReadHallProbeDataSRW (InFileName, ZMin = -999, ZMax = 999:
   "Read a data file from the teststand and return list of parameters needed for simulation"
 
   f = open(InFileName, 'r')
