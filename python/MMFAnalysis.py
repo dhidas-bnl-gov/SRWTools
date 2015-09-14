@@ -8,11 +8,9 @@ import sys
 sys.argv.append('-b-')
 
 from SRWToolsUtil import *
-from srwl_uti_und import *
-
 
 # extra root imports
-from ROOT import TLine, TH1F, TGraph, TCanvas, TFile
+from ROOT import TLine, TH1F, TH2F, TGraph, TCanvas, TFile
 
 
 
@@ -363,7 +361,10 @@ print "Before Correction 1st Integral Bx  %+.6E By %+.6E" % (FInt1Bx[-1],  FInt1
 print "After  Correction 1st Integral Bx  %+.6E By %+.6E" % (BxCorrI1[-1], ByCorrI1[-1])
 print "Before Correction 2nd Integral Bx  %+.6E By %+.6E" % (FInt2Bx[-1],  FInt2By[-1])
 print "After  Correction 2nd Integral Bx  %+.6E By %+.6E" % (BxCorrI2[-1], ByCorrI2[-1])
-exit(0)
+
+
+
+
 
 
 
@@ -447,6 +448,58 @@ gSpectrumCorr.Write()
 
 
 
+StkP_Corr = SRWLStokes() # for power density
+StkP_Corr.allocate(1, 100, 100) #numbers of points vs horizontal and vertical positions (photon energy is not taken into account)
+StkP_Corr.mesh.zStart = 30. #longitudinal position [m] at which power density has to be calculated
+StkP_Corr.mesh.xStart = -0.02 #initial horizontal position [m]
+StkP_Corr.mesh.xFin = 0.02 #final horizontal position [m]
+StkP_Corr.mesh.yStart = -0.015 #initial vertical position [m]
+StkP_Corr.mesh.yFin = 0.015 #final vertical position [m]
+#StkP_Corr.mesh.eStart = 20000. #initial photon energy [eV]
+#StkP_Corr.mesh.eFin = 20001. #final photon energy [eV]
+
+arPrecP = [0]*5 #for power density
+arPrecP[0] = 1.5 #precision factor
+arPrecP[1] = 1 #power density computation method (1- "near field", 2- "far field")
+arPrecP[2] = 0 #initial longitudinal position (effective if arPrecP[2] < arPrecP[3])
+arPrecP[3] = 0 #final longitudinal position (effective if arPrecP[2] < arPrecP[3])
+arPrecP[4] = 20000 #number of points for (intermediate) trajectory calculation
+
+print 'Begin power density calculation'
+srwl.CalcPowDenSR(StkP_Corr, ElecBeam, 0, magFldCnt_Corr, arPrecP)
+
+XValues = numpy.linspace(StkP_Corr.mesh.xStart, StkP_Corr.mesh.xFin, StkP_Corr.mesh.nx)
+YValues = numpy.linspace(StkP_Corr.mesh.yStart, StkP_Corr.mesh.yFin, StkP_Corr.mesh.ny)
+ZValues = numpy.array(StkP_Corr.arS[0:StkP_Corr.mesh.nx*StkP_Corr.mesh.ny]).reshape(StkP_Corr.mesh.ny, StkP_Corr.mesh.nx)
+hPower_Corr = TH2F("PowerDensity_Corr", "Power Density", len(XValues), StkP_Corr.mesh.xStart, StkP_Corr.mesh.xFin, len(YValues), StkP_Corr.mesh.yStart, StkP_Corr.mesh.yFin)
+for i in range( len(XValues) ):
+  for j in range( len(YValues) ):
+    hPower_Corr.SetBinContent(i+1, j+1, ZValues[i][j])
+hPower_Corr.Write()
+
+
+
+StkP_Ideal = SRWLStokes() # for power density
+StkP_Ideal.allocate(1, 100, 100) #numbers of points vs horizontal and vertical positions (photon energy is not taken into account)
+StkP_Ideal.mesh.zStart = 30. #longitudinal position [m] at which power density has to be calculated
+StkP_Ideal.mesh.xStart = -0.02 #initial horizontal position [m]
+StkP_Ideal.mesh.xFin = 0.02 #final horizontal position [m]
+StkP_Ideal.mesh.yStart = -0.015 #initial vertical position [m]
+StkP_Ideal.mesh.yFin = 0.015 #final vertical position [m]
+#StkP_Ideal.mesh.eStart = 20000. #initial photon energy [eV]
+#StkP_Ideal.mesh.eFin = 20001. #final photon energy [eV]
+
+print 'Begin power density calculation Ideal'
+srwl.CalcPowDenSR(StkP_Ideal, ElecBeam, 0, magFldCnt_Ideal, arPrecP)
+
+XValues = numpy.linspace(StkP_Ideal.mesh.xStart, StkP_Ideal.mesh.xFin, StkP_Ideal.mesh.nx)
+YValues = numpy.linspace(StkP_Ideal.mesh.yStart, StkP_Ideal.mesh.yFin, StkP_Ideal.mesh.ny)
+ZValues = numpy.array(StkP_Ideal.arS[0:StkP_Ideal.mesh.nx*StkP_Ideal.mesh.ny]).reshape(StkP_Ideal.mesh.ny, StkP_Ideal.mesh.nx)
+hPower_Ideal = TH2F("PowerDensity_Ideal", "Power Density", len(XValues), StkP_Ideal.mesh.xStart, StkP_Ideal.mesh.xFin, len(YValues), StkP_Ideal.mesh.yStart, StkP_Ideal.mesh.yFin)
+for i in range( len(XValues) ):
+  for j in range( len(YValues) ):
+    hPower_Ideal.SetBinContent(i+1, j+1, ZValues[i][j])
+hPower_Ideal.Write()
 
 
 
