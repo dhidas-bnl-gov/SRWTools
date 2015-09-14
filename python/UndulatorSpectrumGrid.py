@@ -52,7 +52,7 @@ fOutFileDataCorr.write(str(RandomSeed) + '\n')
 
 # Open the input and output ROOT file.
 fIN = open(InFileName, 'r')
-fROOT = TFile(fOutFileNameRoot, 'recreate')
+fROOT = TFile(OutFileNameRoot, 'recreate')
 fROOT.cd()
 
 
