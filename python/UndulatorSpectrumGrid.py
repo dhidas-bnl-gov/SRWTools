@@ -45,14 +45,14 @@ OutFileNameRoot = BaseFileName + '_Spectrum_Section_' + str(SectionNumber).zfill
 print 'Output files for spectrum calculation: ', OutFileNameDataIdeal, OutFileNameDataCorr, OutFileNameRoot
 
 # Open output file and print seed as the first line (seed checking is done later in combination)
-OutFileDataIdeal = open(OutFileNameDataIdeal, 'w')
-OutFileDataCorr  = open(OutFileNameDataCorr, 'w')
-OutFileDataIdeal.write(str(RandomSeed) + '\n')
-OutFileDataCorr.write(str(RandomSeed) + '\n')
+fOutFileDataIdeal = open(OutFileNameDataIdeal, 'w')
+fOutFileDataCorr  = open(OutFileNameDataCorr, 'w')
+fOutFileDataIdeal.write(str(RandomSeed) + '\n')
+fOutFileDataCorr.write(str(RandomSeed) + '\n')
 
 # Open the input and output ROOT file.
-fi = open(InFileName, 'r')
-fROOT = TFile(OutFileNameRoot, 'recreate')
+fIN = open(InFileName, 'r')
+fROOT = TFile(fOutFileNameRoot, 'recreate')
 fROOT.cd()
 
 
@@ -64,7 +64,7 @@ Bz = array('d')
 
 
 # Loop over all entries in the input file
-for l in fi:
+for l in fIN:
   [tZ, tBx, tBy, tBz] = map(float, l.split())
 
   # Make in SI unites and fill the Tree
@@ -77,7 +77,7 @@ for l in fi:
   Bz.append(tBz)
 
 # Close file
-fi.close()
+fIN.close()
 
 # Get the max and mins in the field
 [MaxListInd, MaxListBy] = FindMaxAndMins(Z, By)
@@ -405,14 +405,19 @@ for i in range(50):
   h2XXP.Fill(elecBeamCopy.partStatMom1.x, elecBeamCopy.partStatMom1.xp)
   h2YYP.Fill(elecBeamCopy.partStatMom1.y, elecBeamCopy.partStatMom1.yp)
 
+  # Aperature size
+  aX1 = -25E-6
+  aX2 = +25E-6
+  aY1 = -50E-6
+  aY2 = +50E-6
 
   # Get the spectrum
   if SectionNumber == 0:
-    [X, Y] = GetUndulatorSpectrum(magFldCnt_Ideal, elecBeam)
-    [SpectrumCorrX, SpectrumCorrY] = GetUndulatorSpectrum(magFldCnt_Corr, elecBeam)
+    [X, Y] = GetUndulatorSpectrum(magFldCnt_Ideal, elecBeam, aX1, aX2, aY1, aY2)
+    [SpectrumCorrX, SpectrumCorrY] = GetUndulatorSpectrum(magFldCnt_Corr, elecBeam, aX1, aX2, aY1, aY2)
   else:
-    [X, Y] = GetUndulatorSpectrum(magFldCnt_Ideal, elecBeamCopy)
-    [SpectrumCorrX, SpectrumCorrY] = GetUndulatorSpectrum(magFldCnt_Corr, elecBeamCopy)
+    [X, Y] = GetUndulatorSpectrum(magFldCnt_Ideal, elecBeamCopy, aX1, aX2, aY1, aY2)
+    [SpectrumCorrX, SpectrumCorrY] = GetUndulatorSpectrum(magFldCnt_Corr, elecBeamCopy, aX1, aX2, aY1, aY2)
 
   # For keeping a local running average
   if i == 0:
@@ -450,21 +455,26 @@ for i in range(50):
 
 
 
+# Save a graph of each section automatically if you like
 if (DEBUG and SectionNumber != 0):
+
+  # Graph of spectrum from ideal field
   gSpectrumIdeal = TGraph( len(SpectrumXValues_Ideal), array('d', SpectrumXValues_Ideal), array('d', SpectrumAverages_Ideal) )
   gSpectrumIdeal.SetName('Spectrum_Ideal_Average')
   gSpectrumIdeal.SetTitle('Simulated Spectrum')
   gSpectrumIdeal.GetXaxis().SetTitle('Photon Energy [eV]')
   gSpectrumIdeal.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
-  #gSpectrumIdeal.Write()
+  gSpectrumIdeal.Write()
 
+  # Graph of spectrum from corrected magnetic field
   gSpectrumCorr = TGraph( len(SpectrumXValues_Corr), array('d', SpectrumXValues_Corr), array('d', SpectrumAverages_Corr) )
   gSpectrumCorr.SetName('Spectrum_Corr_Average')
   gSpectrumCorr.SetTitle('Simulated Spectrum')
   gSpectrumCorr.GetXaxis().SetTitle('Photon Energy [eV]')
   gSpectrumCorr.GetYaxis().SetTitle('Intensity photons/s/.1%bw/mm^{2}')
-  #gSpectrumCorr.Write()
+  gSpectrumCorr.Write()
 
+  # Save the graphs of the randomized variables
   hX.Write()
   hY.Write()
   hXP.Write()
@@ -480,22 +490,27 @@ if (DEBUG and SectionNumber != 0):
 
 
 
-
+# Write spectrum from ideal field to file
 for i in range( len(SpectrumXValues_Ideal) ):
-  OutFileDataIdeal.write( '%.9E %.9E\n' % (SpectrumXValues_Ideal[i], SpectrumAverages_Ideal[i]) )
-OutFileDataIdeal.close()
+  fOutFileDataIdeal.write( '%.9E %.9E\n' % (SpectrumXValues_Ideal[i], SpectrumAverages_Ideal[i]) )
+fOutFileDataIdeal.close()
 
+# Write spectrum from corrected field to file
 for i in range( len(SpectrumXValues_Corr) ):
-  OutFileDataCorr.write( '%.9E %.9E\n' % (SpectrumXValues_Corr[i], SpectrumAverages_Corr[i]) )
-OutFileDataCorr.close()
+  fOutFileDataCorr.write( '%.9E %.9E\n' % (SpectrumXValues_Corr[i], SpectrumAverages_Corr[i]) )
+fOutFileDataCorr.close()
 
 
 
 
 
 if (SectionNumber == 0):
+  # Trajectory start and stop values
+  TRAJECTORY_START = UNDULATOR_ZSTART - (UNDULATOR_LENGTH * 0.10)
+  TRAJECTORY_STOP  = UNDULATOR_ZEND   + (UNDULATOR_LENGTH * 0.10)
+
   # Get the electron trajectory
-  partTraj_Ideal = GetElectronTrajectory(magFldCnt_Ideal, UNDULATOR_ZSTART, UNDULATOR_ZEND)
+  partTraj_Ideal = GetElectronTrajectory(magFldCnt_Ideal, TRAJECTORY_START, TRAJECTORY_STOP)
 
   # Get the Z Values for the plot
   ZValues = numpy.linspace(partTraj_Ideal.ctStart, partTraj_Ideal.ctEnd, partTraj_Ideal.np)
@@ -517,7 +532,7 @@ if (SectionNumber == 0):
   gElectronY_Ideal.Write()
 
   # Get the electron trajectory for corrected field
-  partTraj_Corr = GetElectronTrajectory(magFldCnt_Corr, UNDULATOR_ZSTART, UNDULATOR_ZEND)
+  partTraj_Corr = GetElectronTrajectory(magFldCnt_Corr, TRAJECTORY_START, TRAJECTORY_STOP)
 
   # Get the Z Values for the plot
   ZValues_Corr = numpy.linspace(partTraj_Corr.ctStart, partTraj_Corr.ctEnd, partTraj_Corr.np)
@@ -547,9 +562,6 @@ if (SectionNumber == 0):
 
 # Close root file
 fROOT.Close()
-
-
-
 
 
 print 'done.'
