@@ -11,7 +11,7 @@ from SRWToolsUtil import *
 
 
 # extra root imports
-from ROOT import TLine, TH1F
+from ROOT import TLine, TH1F, TH2F
 
 
 
@@ -370,6 +370,9 @@ hXP = TH1F('partStatMom1.xp',     'partStatMom1.xp',     100, -1e-4, 1e-4)
 hYP = TH1F('partStatMom1.yp',     'partStatMom1.yp',     100, -1e-5, 1e-5)
 hG  = TH1F('partStatMom1.energy', 'partStatMom1.energy', 100,   2.9, 3.1)
 
+h2XXP = TH2F('x_vs_xp', 'x vs xp', 100, -1e-4, 1e-4, 100, -1e-4, 1e-4)
+h2YYP = TH2F('y_vs_yp', 'y vs yp', 100, -1e-5, 1e-5, 100, -1e-5, 1e-5)
+
 SpectrumAverages_Ideal = []
 SpectrumXValues_Ideal = []
 SpectrumAverages_Corr = []
@@ -398,6 +401,9 @@ for i in range(50):
   hXP.Fill(elecBeamCopy.partStatMom1.xp)
   hYP.Fill(elecBeamCopy.partStatMom1.yp)
   hG.Fill(elecBeamCopy.partStatMom1.gamma * (0.51099890221e-03))
+
+  h2XXP.Fill(elecBeamCopy.partStatMom1.x, elecBeamCopy.partStatMom1.xp)
+  h2YYP.Fill(elecBeamCopy.partStatMom1.y, elecBeamCopy.partStatMom1.yp)
 
 
   # Get the spectrum
@@ -464,6 +470,9 @@ if (DEBUG and SectionNumber != 0):
   hXP.Write()
   hYP.Write()
   hG.Write()
+
+  h2XXP.Write()
+  h2YYP.Write()
   
 
 
