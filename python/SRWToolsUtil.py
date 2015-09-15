@@ -462,7 +462,6 @@ def AddToRunningAverages (Averages, N, Values):
 def AddToRunningAverages2D (Averages, N, Values):
   "Take a list of running averages and add to it.  Understand the limitations of what you are doing if you are using this"
 
-  print 'N', N
 
   if N == 0:
     for v in Values:
